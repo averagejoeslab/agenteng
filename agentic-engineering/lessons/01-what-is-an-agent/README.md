@@ -6,7 +6,7 @@ From Anthropic's [*Building Effective Agents*](https://www.anthropic.com/enginee
 
 > Agents are systems where LLMs dynamically direct their own processes and tool usage, maintaining control over how they accomplish tasks.
 
-In plainer terms: **an agent is a reasoning engine within a TAO loop, with the ability to take actions.**
+In plainer terms: **an agent is a reasoning model within a loop where it can think, act, and observe within an environment.**
 
 Both say the same thing. The key principle: **the model — not your code — decides what to do next.** If your code decides, you have a workflow, not an agent. This curriculum is about agents.
 
@@ -14,9 +14,9 @@ Both say the same thing. The key principle: **the model — not your code — de
 
 An agent has three moving parts:
 
-1. **An LLM call** — the reasoning engine
+1. **An LLM call** — the reasoning model
 2. **A TAO loop** (Think, Act, Observe) — the structure that turns single calls into sustained work
-3. **Tools** — functions the LLM can invoke to take action
+3. **Tools** — the agent's means of acting on its environment
 
 And one rule that binds them together: **the model directs the loop.** Your code runs the loop and executes tools, but the model decides *which* tool to call, *when*, and *when to stop*.
 
