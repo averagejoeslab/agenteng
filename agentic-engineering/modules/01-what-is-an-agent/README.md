@@ -1,4 +1,4 @@
-# Lesson 1: What is an agent?
+# What is an agent?
 
 ## The definition
 
@@ -8,7 +8,7 @@ From Anthropic's [*Building Effective Agents*](https://www.anthropic.com/enginee
 
 In plainer terms: **an agent is a reasoning model within a loop where it can think, act, and observe within an environment.**
 
-Both say the same thing. The key principle: **the model — not your code — decides what to do next.** If your code decides, you have a workflow, not an agent. This curriculum is about agents.
+Both say the same thing. The key principle: **the model — not your code — decides what to do next.** If your code decides, you have a workflow, not an agent. This content is about agents.
 
 ## The three ingredients
 
@@ -75,9 +75,9 @@ The model chose every action, read every result, and decided when to stop. No pr
 
 ## What we'll build
 
-The next five lessons add one piece at a time:
+The next five modules add one piece at a time:
 
-| Lesson | Added | What it becomes |
+| Module | Added | What it becomes |
 |---|---|---|
 | 2 | LLM call | A one-shot script |
 | 3 | TAO loop (empty) | The loop structure with no tools to call |
@@ -85,7 +85,7 @@ The next five lessons add one piece at a time:
 | 5 | First tool | **An agent** |
 | 6 | More tools | A full toolkit |
 
-By Lesson 6 you'll have a working coding agent in Python. Each lesson ends with something that runs.
+By Module 6 you'll have a working coding agent in Python. Each module ends with something that runs.
 
 ## What you'll need
 
@@ -95,4 +95,4 @@ By Lesson 6 you'll have a working coding agent in Python. Each lesson ends with 
 
 ---
 
-**Next:** Lesson 2: A single LLM call *(coming soon)*
+**Next:** Module 2: A single LLM call *(coming soon)*

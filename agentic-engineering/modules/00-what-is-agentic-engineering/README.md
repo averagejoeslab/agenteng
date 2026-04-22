@@ -51,7 +51,7 @@ flowchart LR
     end
 ```
 
-Both are legitimate agentic systems. This curriculum subscribes to Anthropic's taxonomy.
+Both are legitimate agentic systems. This content subscribes to Anthropic's taxonomy.
 
 ### Common workflow patterns
 
@@ -123,7 +123,7 @@ We believe in the [Anthropic model](https://www.anthropic.com/engineering/buildi
 
 **A workflow is an LLM on rails it can't get off of.** Your code lays the track; the model fills in text at each stop.
 
-From Lesson 1 on, this curriculum is purist: only systems with autonomous control flow count as agents. Workflows are outside the scope of what follows.
+From Module 1 on, this content is purist: only systems with autonomous control flow count as agents. Workflows are outside the scope of what follows.
 
 ```mermaid
 flowchart LR
@@ -146,8 +146,8 @@ Production examples:
 In each case, the next action depends on what the previous action produced. The paths can't be enumerated in advance.
 
 > [!IMPORTANT]
-> Most systems marketed as "agents" in 2026 are workflows. That's often the right answer. This curriculum is about the case when it isn't.
+> Most systems marketed as "agents" in 2026 are workflows. That's often the right answer. This content is about the case when it isn't.
 
 ---
 
-**Next:** [Lesson 1: What is an agent?](../01-what-is-an-agent/)
+**Next:** [Module 1: What is an agent?](../01-what-is-an-agent/)

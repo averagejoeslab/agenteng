@@ -1,6 +1,6 @@
 # agenteng
 
-A framework-free, code-first curriculum for **agentic engineering**.
+A framework-free, code-first content series on **agentic engineering**.
 
 ## What is an agent?
 
@@ -13,7 +13,7 @@ An agent is a system with exactly three ingredients:
 Remove any one and it's something else. No LLM call: not intelligent. No loop: it's a **workflow**. No tools: it's a **chatbot**.
 
 > [!NOTE]
-> Most production systems called "agents" are workflows. Workflows are often the right choice. This curriculum is about the other case — when a task genuinely requires the model to direct its own process, and you need to build it yourself.
+> Most production systems called "agents" are workflows. Workflows are often the right choice. This content is about the other case — when a task genuinely requires the model to direct its own process, and you need to build it yourself.
 
 ## What you'll build
 
@@ -21,12 +21,12 @@ You'll start by building a working coding agent in Python. Then you'll add every
 
 **No frameworks. Just primitives and the reasoning behind them.**
 
-## Curriculum
+## Content
 
 ### Part 0 — Prereqs
 Read the orientation and set up your environment before starting Part 1.
 
-- [Lesson 0: What is agentic engineering?](./agentic-engineering/lessons/00-what-is-agentic-engineering/) — the discipline, the landscape, what agentic engineers do
+- [Module 0: What is agentic engineering?](./agentic-engineering/modules/00-what-is-agentic-engineering/) — the discipline, the landscape, what agentic engineers do
 - Comfort reading Python
 - [Python 3.13 or newer](https://www.python.org/downloads/)
 - [uv](https://docs.astral.sh/uv/) for dependency management
@@ -35,7 +35,7 @@ Read the orientation and set up your environment before starting Part 1.
 ### Part 1 — The Agent
 Define the three ingredients. Build them up one at a time. End with a working agent.
 
-1. [What is an agent?](./agentic-engineering/lessons/01-what-is-an-agent/)
+1. [What is an agent?](./agentic-engineering/modules/01-what-is-an-agent/)
 2. A single LLM call *(coming soon)*
 3. The TAO loop *(coming soon)*
 4. The terminal environment *(coming soon)*
