@@ -1,10 +1,10 @@
 # What is agentic engineering?
 
-**Agentic engineering is the discipline of building agentic systems.** "Agentic systems" is the umbrella term from Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents), covering both workflows and agents.
+**Agentic engineering is the discipline of building agentic systems.**
 
 Working in this discipline involves the following items:
 
-- **Building the control flow** — the control flow determines the path the system takes, agents vs. workflows.
+- **Building the control flow** — the control flow determines the path the system takes
 - **Designing tools** — what capabilities the system has, at what granularity, with what error semantics. See [Model Context Protocol](https://modelcontextprotocol.io) for one standardization effort.
 - **Architecting memory** — what's remembered, when it's remembered, and how it's retrieved
 - **Managing context** — the context window is a budget of tokens; determine how it is managed by what goes in and what gets evicted.
@@ -19,7 +19,7 @@ Working in this discipline involves the following items:
 
 ## What are agentic systems?
 
-**In 2026, agentic systems coordinate more than one LLM call to accomplish a goal.** A control structure sequences the calls; each step's output feeds into the next.
+**An agentic system coordinates more than one LLM call to accomplish a goal.** The term comes from Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents), where it serves as an umbrella covering both workflows and agents. A control flow determines the sequence of calls; each step's output feeds into the next.
 
 ```mermaid
 flowchart LR
