@@ -21,21 +21,12 @@ Working in this discipline involves the following items:
 
 **An agentic system coordinates multiple LLM calls to accomplish a goal.** A control structure sequences the calls; each step's output feeds into the next.
 
-A single prompt-response is not an agentic system. Multiple coordinated LLM calls are.
-
 ```mermaid
 flowchart LR
-    subgraph NotAgentic["Not an agentic system"]
-        direction LR
-        N1[Prompt] --> N2[LLM] --> N3[Output]
-    end
-    subgraph Agentic["Agentic system"]
-        direction LR
-        A1[Prompt] --> A2[LLM]
-        A2 --> A3[Tool / LLM]
-        A3 --> A4[LLM]
-        A4 --> A5[Output]
-    end
+    A1[Prompt] --> A2[LLM]
+    A2 --> A3[Tool / LLM]
+    A3 --> A4[LLM]
+    A4 --> A5[Output]
 ```
 
 ## Types of agentic systems
