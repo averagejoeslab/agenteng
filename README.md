@@ -26,7 +26,7 @@ You'll start by building a ~200-line coding agent in TypeScript. Then you'll add
 ### Part 1 — The Agent
 Define the three ingredients. Build them up one at a time. End with a working agent.
 
-1. [What is an agent?](./part-1-the-agent/01-what-is-an-agent.md)
+1. [What is an agent?](./agentic-engineering/lessons/01-what-is-an-agent/)
 2. A single LLM call *(coming soon)*
 3. The ReAct loop *(coming soon)*
 4. The terminal environment *(coming soon)*
