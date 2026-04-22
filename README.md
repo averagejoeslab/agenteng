@@ -54,15 +54,11 @@ Structured tracing, replay, the tooling landscape.
 ### Part 8 — Production *(coming soon)*
 Cost, latency, model routing, deployment, versioning.
 
-## Reference implementations
-
-- [**basic-agent**](https://github.com/averagejoeslab/basic-agent) — a minimal TypeScript reference (curriculum is in Python; included for cross-language comparison)
-- [**nanoagent**](https://github.com/mrcloudchase/nanoagent) — an extended TypeScript reference with persistent memory, semantic recall, and a Docker sandbox
-
 ## Prerequisites
 
 - Comfort reading Python
-- [Python 3.10 or newer](https://www.python.org/downloads/)
+- [Python 3.13 or newer](https://www.python.org/downloads/)
+- [uv](https://docs.astral.sh/uv/) for dependency management
 - An [Anthropic API key](https://console.anthropic.com)
 
 ## License

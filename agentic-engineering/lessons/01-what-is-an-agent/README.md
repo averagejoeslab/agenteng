@@ -87,7 +87,8 @@ By Lesson 6 you'll have a working coding agent in Python. Each lesson ends with 
 
 ## What you'll need
 
-- [Python 3.10 or newer](https://www.python.org/downloads/)
+- [Python 3.13 or newer](https://www.python.org/downloads/)
+- [uv](https://docs.astral.sh/uv/) for dependency management
 - An Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
 
 ---
