@@ -7,7 +7,7 @@ A framework-free, code-first curriculum for **agentic engineering**.
 An agent is a system with exactly three ingredients:
 
 1. **An LLM call** — the reasoning engine
-2. **A ReAct loop** — the structure that turns single calls into sustained thought
+2. **A TAO loop** (Think, Act, Observe) — the structure that turns single calls into sustained thought
 3. **Tools** — the ability to act
 
 Remove any one and it's something else. No LLM call: not intelligent. No loop: it's a **workflow**. No tools: it's a **chatbot**.
@@ -28,7 +28,7 @@ Define the three ingredients. Build them up one at a time. End with a working ag
 
 1. [What is an agent?](./agentic-engineering/lessons/01-what-is-an-agent/)
 2. A single LLM call *(coming soon)*
-3. The ReAct loop *(coming soon)*
+3. The TAO loop *(coming soon)*
 4. The terminal environment *(coming soon)*
 5. The first tool *(coming soon)*
 6. More tools *(coming soon)*
