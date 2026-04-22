@@ -23,6 +23,15 @@ You'll start by building a working coding agent in Python. Then you'll add every
 
 ## Curriculum
 
+### Part 0 — Prereqs
+Read the orientation and set up your environment before starting Part 1.
+
+- [Lesson 0: What is agentic engineering?](./agentic-engineering/lessons/00-what-is-agentic-engineering/) — the discipline, the landscape, what agentic engineers do
+- Comfort reading Python
+- [Python 3.13 or newer](https://www.python.org/downloads/)
+- [uv](https://docs.astral.sh/uv/) for dependency management
+- An [Anthropic API key](https://console.anthropic.com)
+
 ### Part 1 — The Agent
 Define the three ingredients. Build them up one at a time. End with a working agent.
 
@@ -53,14 +62,6 @@ Structured tracing, replay, the tooling landscape.
 
 ### Part 8 — Production *(coming soon)*
 Cost, latency, model routing, deployment, versioning.
-
-## Prerequisites
-
-- Read [Lesson 0 — What is agentic engineering?](./agentic-engineering/lessons/00-what-is-agentic-engineering/) — the discipline, the landscape, what agentic engineers do
-- Comfort reading Python
-- [Python 3.13 or newer](https://www.python.org/downloads/)
-- [uv](https://docs.astral.sh/uv/) for dependency management
-- An [Anthropic API key](https://console.anthropic.com)
 
 ## License
 
