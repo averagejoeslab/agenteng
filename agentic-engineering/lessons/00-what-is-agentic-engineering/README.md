@@ -63,8 +63,7 @@ Both are legitimate agentic systems. This curriculum subscribes to Anthropic's t
 | **Orchestrator-workers** | One LLM splits work → workers handle sub-tasks | research report with multiple sections |
 | **Evaluator-optimizer** | Generator → Evaluator → loop until good | draft with a quality-gate loop |
 
-<details>
-<summary>See the control flow of each pattern</summary>
+#### Control flow of each pattern
 
 **Prompt chaining**
 
@@ -117,8 +116,6 @@ flowchart LR
     E -->|good| Out[Output]
     E -->|refine| G
 ```
-
-</details>
 
 ### What agents look like
 
