@@ -2,7 +2,7 @@
 
 ## What is agentic engineering?
 
-**Agentic engineering is the engineering discipline for systems where a language model takes actions, reasons across many steps, and coordinates with tools.** If you call a model once and print the result, you don't need agentic engineering. If the model's output has to feed back into its next input — choosing tools, seeing results, deciding when to stop — you do.
+**Agentic engineering is the discipline of building agentic systems.** If you call a model once and print the result, you don't need agentic engineering. If the model's output has to feed back into its next input — choosing tools, seeing results, deciding when to stop — you do.
 
 ### Where it sits
 
