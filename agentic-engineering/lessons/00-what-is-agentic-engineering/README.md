@@ -1,6 +1,4 @@
-# Lesson 0: What is agentic engineering?
-
-## What is agentic engineering?
+# What is agentic engineering?
 
 **Agentic engineering is the discipline of building agentic systems.** "Agentic systems" is the umbrella term from Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents), covering both workflows and agents.
 
