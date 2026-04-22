@@ -6,42 +6,24 @@
 
 An **agentic system** is one where a language model's output feeds back into its next input — choosing tools, seeing results, deciding when to stop — rather than producing a single response to a single prompt.
 
-### Where it sits
+## What is an agentic engineer, and what do they do?
 
-Agentic engineering is adjacent to four other disciplines that share some surface area but differ in what they work on:
+An agentic engineer designs, builds, and operates agentic systems. Part systems designer, part researcher, part debugger. The model is non-deterministic, so the work is less *"this is correct"* and more *"this is reliable enough."*
 
-| Discipline | Works on | Produces |
-|---|---|---|
-| **ML engineering** | The model's weights | Trained or fine-tuned models |
-| **Prompt engineering** | One input to a fixed model | Better responses to one-shot queries |
-| **Agentic engineering** | The system *around* the model | Multi-step systems: loops, tools, memory, evaluation |
-| **Software engineering** | Deterministic code | Classical applications and services |
+> [!NOTE]
+> Broadly, the concerns fall into three buckets: **foundations** (tools, loop, memory, context), **observability and trust** (tracing, evaluation, safety), and **production economics** (cost, latency, prompts).
 
-```mermaid
-flowchart LR
-    MLE[ML engineering<br/>builds the model] --> Model((Model))
-    Model --> AE
-    subgraph AE["Agentic engineering"]
-        PE[Prompt engineering]
-        Rest[Loop, tools, memory,<br/>eval, safety, observability]
-    end
-```
+The day-to-day:
 
-ML engineering builds the model. Prompt engineering tunes a single input to it. Agentic engineering builds everything else — the code around the model that makes it do multi-step work. Prompt engineering is a concern *inside* agentic engineering; good agents still need good prompts, but prompts alone don't make an agent.
-
-### What makes it distinct
-
-Agentic engineering inherits from classical software engineering but diverges on one property: **the system is non-deterministic, and control flow is partially delegated to the model.**
-
-That one property breaks several software-engineering assumptions:
-
-- **You can't enumerate edge cases** — the model chooses actions; the action space is open
-- **You can't unit-test a trajectory** — every run takes a different path
-- **Correctness becomes statistical** — "is this right?" becomes "how often does this work?"
-- **Context is a live budget** — every tool call grows the conversation; every LLM call charges against a window
-- **Debugging is trace-based** — stack traces don't help when the bug is a bad decision six steps ago
-
-These are the problems that define agentic engineering as its own discipline. The model is the brain. Agentic engineering is the body, the reflexes, and the environment it operates in.
+- **Design tools** — what capabilities the system has, at what granularity, with what error semantics
+- **Build the loop or the orchestration** — the control structure that sequences LLM calls, whether the model or your code decides
+- **Architect memory** — what's remembered within a task, across tasks, and how it's retrieved
+- **Manage context** — the context window as a budget; what goes in, what gets summarized, what gets evicted
+- **Set up observability** — structured traces of every LLM call, tool call, and state transition
+- **Build evaluation** — task-completion suites, trajectory analysis, regression testing for non-deterministic systems
+- **Handle safety** — sandboxing, prompt injection defenses, human approval gates for irreversible actions
+- **Manage cost and latency** — caching, batching, model routing, parallelization
+- **Tune prompts and context** — system prompts still matter; they're scaffolding inside the larger system now
 
 ## What are agentic systems?
 
@@ -171,25 +153,6 @@ In each case, the next action depends on what the previous action produced. The 
 
 > [!IMPORTANT]
 > Most systems marketed as "agents" in 2026 are workflows. That's often the right answer. This curriculum is about the case when it isn't.
-
-## What is an agentic engineer, and what do they do?
-
-An agentic engineer designs, builds, and operates agentic systems. Part systems designer, part researcher, part debugger. The model is non-deterministic, so the work is less *"this is correct"* and more *"this is reliable enough."*
-
-> [!NOTE]
-> Broadly, the concerns fall into three buckets: **foundations** (tools, loop, memory, context), **observability and trust** (tracing, evaluation, safety), and **production economics** (cost, latency, prompts).
-
-The day-to-day:
-
-- **Design tools** — what capabilities the system has, at what granularity, with what error semantics
-- **Build the loop or the orchestration** — the control structure that sequences LLM calls, whether the model or your code decides
-- **Architect memory** — what's remembered within a task, across tasks, and how it's retrieved
-- **Manage context** — the context window as a budget; what goes in, what gets summarized, what gets evicted
-- **Set up observability** — structured traces of every LLM call, tool call, and state transition
-- **Build evaluation** — task-completion suites, trajectory analysis, regression testing for non-deterministic systems
-- **Handle safety** — sandboxing, prompt injection defenses, human approval gates for irreversible actions
-- **Manage cost and latency** — caching, batching, model routing, parallelization
-- **Tune prompts and context** — system prompts still matter; they're scaffolding inside the larger system now
 
 ## The Average Joes Lab stance: purist agents only
 
