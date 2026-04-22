@@ -4,9 +4,7 @@
 
 **Agentic engineering is the discipline of building agentic systems.** "Agentic systems" is the umbrella term from Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents), covering both workflows and agents.
 
-## What is an agentic engineer, and what do they do?
-
-An agentic engineer designs, builds, and operates agentic systems. Because the model is non-deterministic, correctness is statistical rather than absolute — the question shifts from *"is this right?"* to *"how often does this work?"*
+Because the model is non-deterministic, correctness is statistical rather than absolute — the question shifts from *"is this right?"* to *"how often does this work?"*
 
 > [!NOTE]
 > The concerns fall into three buckets: **foundations** (tools, loop, memory, context), **observability and trust** (tracing, evaluation, safety), and **production economics** (cost, latency, prompts).
