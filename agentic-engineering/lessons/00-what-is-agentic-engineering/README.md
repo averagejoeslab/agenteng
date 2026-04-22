@@ -4,12 +4,7 @@
 
 **Agentic engineering is the discipline of building agentic systems.** "Agentic systems" is the umbrella term from Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents), covering both workflows and agents.
 
-Because the model is non-deterministic, correctness is statistical rather than absolute — the question shifts from *"is this right?"* to *"how often does this work?"*
-
-> [!NOTE]
-> The concerns fall into three buckets: **foundations** (tools, loop, memory, context), **observability and trust** (tracing, evaluation, safety), and **production economics** (cost, latency, prompts).
-
-The day-to-day:
+Working in this discipline entails these concerns:
 
 - **Design tools** — what capabilities the system has, at what granularity, with what error semantics. See [Model Context Protocol](https://modelcontextprotocol.io) for one standardization effort.
 - **Build the loop or the orchestration** — the control structure that sequences LLM calls, whether the model or your code decides
@@ -20,6 +15,9 @@ The day-to-day:
 - **Handle safety** — sandboxing, prompt injection defenses, human approval gates (see [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/))
 - **Manage cost and latency** — caching, batching, model routing, parallelization
 - **Tune prompts and context** — the system prompt is scaffolding inside the larger system
+
+> [!NOTE]
+> These fall into three buckets: **foundations** (tools, loop, memory, context), **observability and trust** (tracing, evaluation, safety), and **production economics** (cost, latency, prompts).
 
 ## What are agentic systems?
 
