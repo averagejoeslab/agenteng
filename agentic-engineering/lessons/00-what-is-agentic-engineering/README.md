@@ -119,9 +119,11 @@ flowchart LR
 
 ## The Average Joes Lab stance: purist agents only
 
-From Lesson 1 on, this curriculum is purist: **an agent is a system where the model directs its own control flow through a loop of tools.** Workflows are outside the scope of the teaching that follows.
+We believe in the [Anthropic model](https://www.anthropic.com/engineering/building-effective-agents): **a real agent has autonomy over its own control flow.** The model decides what tool to call, what to do with the result, and when the task is done. No predetermined path.
 
-The reason: **a workflow is just an agent with the control flow codified.** The pieces are the same (LLM calls, tools, context, memory), but *who decides the next step* shifts from the model to your code. Understanding agents → understanding workflows; the reverse doesn't hold.
+**A workflow is an LLM on rails it can't get off of.** Your code lays the track; the model fills in text at each stop.
+
+From Lesson 1 on, this curriculum is purist: only systems with autonomous control flow count as agents. Workflows are outside the scope of what follows.
 
 ```mermaid
 flowchart LR
@@ -129,7 +131,9 @@ flowchart LR
     W -.cannot derive.-> A
 ```
 
-For most production systems a workflow is more reliable, cheaper, and easier to evaluate — [Anthropic makes the same case](https://www.anthropic.com/engineering/building-effective-agents). The interesting engineering problems — designing tools the model will use well, managing an open-ended context, making a non-deterministic loop reliable, evaluating a trajectory you can't enumerate — are agent problems. If you want a workflow, you already have the ingredients.
+The pieces are the same — LLM calls, tools, context, memory — but *who decides the next step* shifts from the model (agent) to your code (workflow). Understanding agents → understanding workflows; the reverse doesn't hold.
+
+For most production systems a workflow is more reliable, cheaper, and easier to evaluate — build a workflow if you can. But the interesting engineering problems — designing tools the model will use well, managing an open-ended context, making a non-deterministic loop reliable, evaluating a trajectory you can't enumerate — are agent problems. If you want a workflow, you already have the ingredients.
 
 ## What agents look like
 
