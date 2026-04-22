@@ -95,4 +95,4 @@ By Module 6 you'll have a working coding agent in Python. Each module ends with 
 
 ---
 
-**Next:** Module 2: A single LLM call *(coming soon)*
+**Next:** [Module 2: A single LLM call](../02-a-single-llm-call/)
