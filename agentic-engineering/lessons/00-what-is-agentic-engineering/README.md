@@ -2,20 +2,44 @@
 
 ## What is agentic engineering?
 
-**Agentic engineering is the science of building agentic systems.** It's a distinct discipline from adjacent practices:
+**Agentic engineering is the engineering discipline for systems where a language model takes actions, reasons across many steps, and coordinates with tools.** If you call a model once and print the result, you don't need agentic engineering. If the model's output has to feed back into its next input — choosing tools, seeing results, deciding when to stop — you do.
 
-- **Prompt engineering** optimizes a single input to get a better single output. One shot.
-- **ML engineering** trains, fine-tunes, and deploys models. It works on the weights.
-- **Agentic engineering** treats the model as a fixed cognitive engine and builds the system around it — the loop, the tools, the memory, the observability, the safety.
+### Where it sits
+
+Agentic engineering is adjacent to four other disciplines that share some surface area but differ in what they work on:
+
+| Discipline | Works on | Produces |
+|---|---|---|
+| **ML engineering** | The model's weights | Trained or fine-tuned models |
+| **Prompt engineering** | One input to a fixed model | Better responses to one-shot queries |
+| **Agentic engineering** | The system *around* the model | Multi-step systems: loops, tools, memory, evaluation |
+| **Software engineering** | Deterministic code | Classical applications and services |
 
 ```mermaid
 flowchart LR
-    ML[ML engineering<br/>trains the model] --> Model((Model))
-    Model --> PE[Prompt engineering<br/>optimizes one input]
-    Model --> AE[Agentic engineering<br/>builds the system around it]
+    MLE[ML engineering<br/>builds the model] --> Model((Model))
+    Model --> AE
+    subgraph AE["Agentic engineering"]
+        PE[Prompt engineering]
+        Rest[Loop, tools, memory,<br/>eval, safety, observability]
+    end
 ```
 
-The model is the brain. Agentic engineering is everything else.
+ML engineering builds the model. Prompt engineering tunes a single input to it. Agentic engineering builds everything else — the code around the model that makes it do multi-step work. Prompt engineering is a concern *inside* agentic engineering; good agents still need good prompts, but prompts alone don't make an agent.
+
+### What makes it distinct
+
+Agentic engineering inherits from classical software engineering but diverges on one property: **the system is non-deterministic, and control flow is partially delegated to the model.**
+
+That one property breaks several software-engineering assumptions:
+
+- **You can't enumerate edge cases** — the model chooses actions; the action space is open
+- **You can't unit-test a trajectory** — every run takes a different path
+- **Correctness becomes statistical** — "is this right?" becomes "how often does this work?"
+- **Context is a live budget** — every tool call grows the conversation; every LLM call charges against a window
+- **Debugging is trace-based** — stack traces don't help when the bug is a bad decision six steps ago
+
+These are the problems that define agentic engineering as its own discipline. The model is the brain. Agentic engineering is the body, the reflexes, and the environment it operates in.
 
 ## What are agentic systems?
 
