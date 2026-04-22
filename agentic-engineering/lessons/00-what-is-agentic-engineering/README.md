@@ -2,7 +2,7 @@
 
 ## The discipline
 
-**Agentic engineering is the craft of building agents** — systems where a language model directs its own actions through tools, reasoning in a loop until a task is complete.
+**Agentic engineering is the science of building agentic systems** — systems that combine language models with tools to accomplish tasks.
 
 It's a distinct discipline from adjacent practices:
 
@@ -14,11 +14,13 @@ The model is the brain. Agentic engineering is everything else.
 
 ## Types of agentic systems
 
-There are two kinds of systems built on LLMs. The distinction is drawn sharply by Anthropic in [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents):
+Agentic systems come in two forms. The distinction is drawn sharply by Anthropic in [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents):
 
 **Workflows** — systems where LLMs and tools are orchestrated through **predefined code paths**. Your code decides the sequence of steps.
 
 **Agents** — systems where **LLMs dynamically direct their own processes and tool usage**. The model decides the sequence.
+
+Both are legitimate agentic systems. This curriculum subscribes to Anthropic's taxonomy.
 
 ### Common workflow patterns
 
@@ -42,8 +44,11 @@ Real agents are rarer because they're harder. Production examples:
 
 In each case, the next action depends on what the previous action produced. The paths can't be enumerated in advance.
 
-> [!NOTE]
-> Most systems marketed as "agents" are workflows. Workflows are often the right answer — they're more reliable, cheaper, and easier to evaluate. Build a workflow if you can. This curriculum is about the case when you can't.
+### Our purist stance from Lesson 1 onward
+
+From Lesson 1 on, we're purists: an agent is a system where the model directs its own control flow through a loop of tools, as defined in the next lesson. We will not teach workflow patterns in depth for a simple reason — **a workflow is just an agent with the control flow codified**. The pieces are the same (LLM calls, tools, context, memory), but *who decides the next step* shifts from the model to your code. Once you understand how an agent works, lifting the model's decision-making into your code gives you a workflow. The reverse doesn't hold.
+
+For most production systems a workflow is more reliable, cheaper, and easier to evaluate — build a workflow if you can. But the interesting engineering problems — designing tools the model will actually use well, managing an open-ended context, making a non-deterministic loop reliable, evaluating a trajectory you can't enumerate — are agent problems. So we teach agents. If you want a workflow, you already have the ingredients.
 
 ## What agentic engineers do
 
