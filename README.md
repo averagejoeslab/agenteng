@@ -23,6 +23,8 @@ You'll start by building a working coding agent in Python. Then you'll add every
 
 ## Curriculum
 
+**Start here:** [Lesson 0 — What is agentic engineering?](./agentic-engineering/lessons/00-what-is-agentic-engineering/) — the discipline, the landscape, what agentic engineers do.
+
 ### Part 1 — The Agent
 Define the three ingredients. Build them up one at a time. End with a working agent.
 

@@ -1,5 +1,7 @@
 # Lesson 1: What is an agent?
 
+*Previous: [Lesson 0 — What is agentic engineering?](../00-what-is-agentic-engineering/)*
+
 ## The definition
 
 From Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents):
