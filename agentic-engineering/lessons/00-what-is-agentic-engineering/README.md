@@ -2,16 +2,16 @@
 
 **Agentic engineering is the discipline of building agentic systems.** "Agentic systems" is the umbrella term from Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents), covering both workflows and agents.
 
-Working in this discipline entails these concerns:
+Working in this discipline involves the following items:
 
 - **Design tools** — what capabilities the system has, at what granularity, with what error semantics. See [Model Context Protocol](https://modelcontextprotocol.io) for one standardization effort.
-- **Build the loop or the orchestration** — the control structure that sequences LLM calls, whether the model or your code decides
-- **Architect memory** — what's remembered within a task, across tasks, and how it's retrieved
-- **Manage context** — the context window as a budget; what goes in, what gets summarized, what gets evicted
-- **Set up observability** — structured traces of every LLM call, tool call, and state transition (e.g., [Langfuse](https://langfuse.com), [LangSmith](https://smith.langchain.com), [Arize Phoenix](https://phoenix.arize.com))
+- **Build the loop or the orchestration** — the control flow that sequences LLM calls, whether the model or your code decides the next step determines if it's a workflow or an agent.
+- **Architect memory** — what's remembered, when it's remembered, and how it's retrieved
+- **Manage context** — the context window as a budget; what goes in, how it gets evicted, how it is managed
+- **Set up observability** — structured traces of every LLM call, tool call, and state transition
 - **Build evaluation** — task-completion suites, trajectory analysis, regression testing for non-deterministic systems
-- **Handle safety** — sandboxing, prompt injection defenses, human approval gates (see [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/))
-- **Manage cost and latency** — caching, batching, model routing, parallelization
+- **Handle safety/guardrails** — identity and access management, sandboxing, input/output detection systems, human approval gates
+- **Manage cost and latency** — caching, batching, model routing, parallelization, compression, etc.
 - **Tune prompts and context** — the system prompt is scaffolding inside the larger system
 
 > [!NOTE]
@@ -19,9 +19,9 @@ Working in this discipline entails these concerns:
 
 ## What are agentic systems?
 
-Agentic systems coordinate multiple LLM invocations to accomplish multi-step tasks. A control structure sequences the calls; each step's output feeds into the next. Tools, memory, and retrieval are common participants but not strictly required — a pure LLM-to-LLM chain is still an agentic system.
+**An agentic system coordinates multiple LLM calls to accomplish a goal.** A control structure sequences the calls; each step's output feeds into the next.
 
-The defining property is **coordination across steps**. A one-off prompt-response isn't an agentic system. A system that chains, routes, parallelizes, or loops multiple LLM calls is.
+A single prompt-response is not an agentic system. Multiple coordinated LLM calls are.
 
 ```mermaid
 flowchart LR
