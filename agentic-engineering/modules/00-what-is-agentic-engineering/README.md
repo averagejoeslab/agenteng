@@ -4,22 +4,22 @@
 
 Working in this discipline involves the following items:
 
-- **Design tools** — what capabilities the system has, at what granularity, with what error semantics. See [Model Context Protocol](https://modelcontextprotocol.io) for one standardization effort.
-- **Build the loop or the orchestration** — the control flow that sequences LLM calls, whether the model or your code decides the next step determines if it's a workflow or an agent.
-- **Architect memory** — what's remembered, when it's remembered, and how it's retrieved
-- **Manage context** — the context window as a budget; what goes in, how it gets evicted, how it is managed
-- **Set up observability** — structured traces of every LLM call, tool call, and state transition
-- **Build evaluation** — task-completion suites, trajectory analysis, regression testing for non-deterministic systems
-- **Handle safety/guardrails** — identity and access management, sandboxing, input/output detection systems, human approval gates
-- **Manage cost and latency** — caching, batching, model routing, parallelization, compression, etc.
-- **Tune prompts and context** — the system prompt is scaffolding inside the larger system
+- **Building the control flow** — the control flow determines the path the system takes, agents vs. workflows.
+- **Designing tools** — what capabilities the system has, at what granularity, with what error semantics. See [Model Context Protocol](https://modelcontextprotocol.io) for one standardization effort.
+- **Architecting memory** — what's remembered, when it's remembered, and how it's retrieved
+- **Managing context** — the context window is a budget of tokens; determine how it is managed by what goes in and what gets evicted.
+- **Setting up observability** — structured traces of every LLM call, tool call, and state transition in the control flow.
+- **Building evaluations** — task-completion suites, trajectory analysis, regression testing for non-deterministic systems
+- **Handling safety/guardrails** — identity and access management, sandboxing, input/output detection systems, human approval gates
+- **Managing cost and latency** — caching, batching, model routing, parallelization, compression, etc.
+- **Tuning prompts and context** — the system prompt is scaffolding inside the larger system
 
 > [!NOTE]
-> These fall into three buckets: **foundations** (tools, loop, memory, context), **observability and trust** (tracing, evaluation, safety), and **production economics** (cost, latency, prompts).
+> These fall into three buckets: **foundations** (control flow, tools, memory, context), **observability and trust** (tracing, evaluation, safety), and **production economics** (cost, latency, prompts).
 
 ## What are agentic systems?
 
-**An agentic system coordinates multiple LLM calls to accomplish a goal.** A control structure sequences the calls; each step's output feeds into the next.
+**In 2026, agentic systems coordinate more than one LLM call to accomplish a goal.** A control structure sequences the calls; each step's output feeds into the next.
 
 ```mermaid
 flowchart LR
