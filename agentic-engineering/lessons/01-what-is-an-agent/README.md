@@ -38,18 +38,24 @@ Remove any ingredient and it's something else:
 ```mermaid
 flowchart LR
     subgraph Chatbot
-        A1[LLM call]
+        direction TB
+        A0[User input] --> A1[LLM call]
+        A1 --> A0
     end
     subgraph Workflow
+        direction TB
         B1[LLM call] -.predefined.-> B2[LLM call] -.path.-> B3[LLM call]
     end
     subgraph Agent
         direction TB
-        C1[LLM call] --> C2{Tool?}
+        C0[User input] --> C1[LLM call]
+        C1 --> C2{Tool?}
         C2 -->|yes| C3[Execute] --> C1
-        C2 -->|no| C4[Done]
+        C2 -->|no| C0
     end
 ```
+
+A system can have two kinds of loops: a **conversation loop** (user-driven, between turns) and an **agentic loop** (model-driven, within a turn, driven by the model's tool requests). Chatbots have only the first. Agents have both.
 
 The distinguishing question is **who decides the next step**:
 
@@ -58,8 +64,6 @@ The distinguishing question is **who decides the next step**:
 | **Chatbot** | ✓ | ✗ | ✗ | The user (between turns) |
 | **Workflow** | ✓ | sometimes | ✗ | Your code |
 | **Agent** | ✓ | ✓ | ✓ | **The model** |
-
-"Agentic loop" means a loop driven by the model's tool requests — distinct from a conversation loop (which multi-turn chatbots have) or an orchestration loop (which workflows may have). Only an agent has an agentic loop.
 
 > [!NOTE]
 > Most production systems called "agents" are workflows. They classify inputs, route to handlers, summarize, done — with predefined control flow. Those systems are often the right choice. They're just not agents by this definition, and this curriculum is about the other thing.
