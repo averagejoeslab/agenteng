@@ -36,8 +36,8 @@ The cycle repeats: Think → Act → Observe → Think → ... until the model s
 With the concept in hand, the three ingredients are ordinary engineering pieces:
 
 - **The LLM call** is an HTTP POST to the model provider's API, returning reasoning text and (optionally) a tool request in the same response
-- **The loop** is a `while (true)` that exits when the model stops requesting tools
-- **Tools** are plain functions with a JSON schema describing their inputs; your code runs them and appends the result to the conversation before calling the LLM again
+- **The loop** is a `while True:` that exits when the model stops requesting tools
+- **Tools** are plain Python functions with a JSON schema (a `dict`) describing their inputs; your code runs them and appends the result to the conversation before calling the LLM again
 
 What makes the system agentic isn't any one of these pieces — it's how they fit together so the model drives the control flow.
 
@@ -83,11 +83,11 @@ The next five lessons add one piece at a time:
 | 5 | First tool | **An agent** |
 | 6 | More tools | A full toolkit |
 
-By Lesson 6 you'll have a working coding agent in ~200 lines of TypeScript. Each lesson ends with something that runs.
+By Lesson 6 you'll have a working coding agent in Python. Each lesson ends with something that runs.
 
 ## What you'll need
 
-- [Bun](https://bun.sh) — `curl -fsSL https://bun.sh/install | bash`
+- [Python 3.10 or newer](https://www.python.org/downloads/)
 - An Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
 
 ---

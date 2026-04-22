@@ -17,7 +17,7 @@ Remove any one and it's something else. No LLM call: not intelligent. No loop: i
 
 ## What you'll build
 
-You'll start by building a ~200-line coding agent in TypeScript. Then you'll add everything real agents need: memory, well-designed tools, sandboxing, reliability, evaluation, observability, and production deployment.
+You'll start by building a working coding agent in Python. Then you'll add everything real agents need: memory, well-designed tools, sandboxing, reliability, evaluation, observability, and production deployment.
 
 **No frameworks. Just primitives and the reasoning behind them.**
 
@@ -56,13 +56,13 @@ Cost, latency, model routing, deployment, versioning.
 
 ## Reference implementations
 
-- [**basic-agent**](https://github.com/averagejoeslab/basic-agent) — the ~200-line artifact built across Part 1
-- [**nanoagent**](https://github.com/mrcloudchase/nanoagent) — an extended reference with persistent memory, semantic recall, and a Docker sandbox
+- [**basic-agent**](https://github.com/averagejoeslab/basic-agent) — a minimal TypeScript reference (curriculum is in Python; included for cross-language comparison)
+- [**nanoagent**](https://github.com/mrcloudchase/nanoagent) — an extended TypeScript reference with persistent memory, semantic recall, and a Docker sandbox
 
 ## Prerequisites
 
-- Comfort reading TypeScript
-- [Bun](https://bun.sh) installed
+- Comfort reading Python
+- [Python 3.10 or newer](https://www.python.org/downloads/)
 - An [Anthropic API key](https://console.anthropic.com)
 
 ## License
