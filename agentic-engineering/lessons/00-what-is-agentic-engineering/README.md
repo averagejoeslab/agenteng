@@ -2,34 +2,32 @@
 
 ## What is agentic engineering?
 
-**Agentic engineering is the discipline of building agentic systems.**
-
-An **agentic system** is one where a language model's output feeds back into its next input — choosing tools, seeing results, deciding when to stop — rather than producing a single response to a single prompt.
+**Agentic engineering is the discipline of building agentic systems.** "Agentic systems" is the umbrella term from Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents), covering both workflows and agents.
 
 ## What is an agentic engineer, and what do they do?
 
-An agentic engineer designs, builds, and operates agentic systems. Part systems designer, part researcher, part debugger. The model is non-deterministic, so the work is less *"this is correct"* and more *"this is reliable enough."*
+An agentic engineer designs, builds, and operates agentic systems. Because the model is non-deterministic, correctness is statistical rather than absolute — the question shifts from *"is this right?"* to *"how often does this work?"*
 
 > [!NOTE]
-> Broadly, the concerns fall into three buckets: **foundations** (tools, loop, memory, context), **observability and trust** (tracing, evaluation, safety), and **production economics** (cost, latency, prompts).
+> The concerns fall into three buckets: **foundations** (tools, loop, memory, context), **observability and trust** (tracing, evaluation, safety), and **production economics** (cost, latency, prompts).
 
 The day-to-day:
 
-- **Design tools** — what capabilities the system has, at what granularity, with what error semantics
+- **Design tools** — what capabilities the system has, at what granularity, with what error semantics. See [Model Context Protocol](https://modelcontextprotocol.io) for one standardization effort.
 - **Build the loop or the orchestration** — the control structure that sequences LLM calls, whether the model or your code decides
 - **Architect memory** — what's remembered within a task, across tasks, and how it's retrieved
 - **Manage context** — the context window as a budget; what goes in, what gets summarized, what gets evicted
-- **Set up observability** — structured traces of every LLM call, tool call, and state transition
+- **Set up observability** — structured traces of every LLM call, tool call, and state transition (e.g., [Langfuse](https://langfuse.com), [LangSmith](https://smith.langchain.com), [Arize Phoenix](https://phoenix.arize.com))
 - **Build evaluation** — task-completion suites, trajectory analysis, regression testing for non-deterministic systems
-- **Handle safety** — sandboxing, prompt injection defenses, human approval gates for irreversible actions
+- **Handle safety** — sandboxing, prompt injection defenses, human approval gates (see [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/))
 - **Manage cost and latency** — caching, batching, model routing, parallelization
-- **Tune prompts and context** — system prompts still matter; they're scaffolding inside the larger system now
+- **Tune prompts and context** — the system prompt is scaffolding inside the larger system
 
 ## What are agentic systems?
 
-Agentic systems combine language models with tools to accomplish multi-step tasks. The model produces outputs (reasoning, tool requests, final answers), a control structure sequences those outputs, and tools let the system take actions beyond generating text.
+Agentic systems coordinate multiple LLM invocations to accomplish multi-step tasks. A control structure sequences the calls; each step's output feeds into the next. Tools, memory, and retrieval are common participants but not strictly required — a pure LLM-to-LLM chain is still an agentic system.
 
-What distinguishes agentic systems from single-shot LLM use is **coordination across steps** — each step's result informs the next. A one-off prompt-response is not an agentic system. A system that loops or pipelines multiple LLM calls coordinated with tool execution is.
+The defining property is **coordination across steps**. A one-off prompt-response isn't an agentic system. A system that chains, routes, parallelizes, or loops multiple LLM calls is.
 
 ```mermaid
 flowchart LR
@@ -48,7 +46,7 @@ flowchart LR
 
 ## Types of agentic systems
 
-Agentic systems come in two forms. The distinction is drawn sharply by Anthropic in [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents):
+Agentic systems come in two forms, as defined in Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents):
 
 **Workflows** — systems where LLMs and tools are orchestrated through **predefined code paths**. Your code decides the sequence of steps.
 
@@ -71,8 +69,6 @@ flowchart LR
 Both are legitimate agentic systems. This curriculum subscribes to Anthropic's taxonomy.
 
 ### Common workflow patterns
-
-Most production "AI apps" are workflows. The common patterns:
 
 | Pattern | Control flow | Example |
 |---|---|---|
@@ -139,15 +135,13 @@ flowchart LR
 
 </details>
 
-All of these are useful. All are workflows, not agents.
-
 ### What agents look like
 
-Real agents are rarer because they're harder. Production examples:
+Production examples:
 
-- **Coding agents** — Claude Code, Cursor's agent mode, Devin, Aider. The model opens files, edits them, runs tests, iterates.
-- **Research agents** — Deep Research, investigation systems. The model searches, synthesizes, digs deeper.
-- **Task completion agents** — SWE-agent, browser-use agents. The model manipulates a filesystem or GUI to complete a task.
+- **Coding agents** — [Claude Code](https://claude.com/claude-code), [Cursor](https://cursor.com), [Devin](https://devin.ai), [Aider](https://aider.chat). The model opens files, edits them, runs tests, iterates.
+- **Research agents** — [OpenAI Deep Research](https://openai.com/index/introducing-deep-research/), Claude's research mode. The model searches, synthesizes, digs deeper.
+- **Task completion agents** — [SWE-agent](https://swe-agent.com), browser-use agents. The model manipulates a filesystem or GUI to complete a task.
 
 In each case, the next action depends on what the previous action produced. The paths can't be enumerated in advance.
 
@@ -156,9 +150,9 @@ In each case, the next action depends on what the previous action produced. The 
 
 ## The Average Joes Lab stance: purist agents only
 
-From Lesson 1 on, this curriculum is purist: **an agent is a system where the model directs its own control flow through a loop of tools, as defined in the next lesson.** Workflows are outside the scope of the teaching that follows.
+From Lesson 1 on, this curriculum is purist: **an agent is a system where the model directs its own control flow through a loop of tools.** Workflows are outside the scope of the teaching that follows.
 
-We take this stance for one reason: **a workflow is just an agent with the control flow codified.** The pieces are the same (LLM calls, tools, context, memory), but *who decides the next step* shifts from the model to your code. Once you understand how an agent works, lifting the model's decision-making into your code gives you a workflow. The reverse doesn't hold.
+The reason: **a workflow is just an agent with the control flow codified.** The pieces are the same (LLM calls, tools, context, memory), but *who decides the next step* shifts from the model to your code. Understanding agents → understanding workflows; the reverse doesn't hold.
 
 ```mermaid
 flowchart LR
@@ -166,7 +160,7 @@ flowchart LR
     W -.cannot derive.-> A
 ```
 
-For most production systems a workflow is more reliable, cheaper, and easier to evaluate — build a workflow if you can. But the interesting engineering problems — designing tools the model will actually use well, managing an open-ended context, making a non-deterministic loop reliable, evaluating a trajectory you can't enumerate — are agent problems. So we teach agents. If you want a workflow, you already have the ingredients.
+For most production systems a workflow is more reliable, cheaper, and easier to evaluate — [Anthropic makes the same case](https://www.anthropic.com/engineering/building-effective-agents). The interesting engineering problems — designing tools the model will use well, managing an open-ended context, making a non-deterministic loop reliable, evaluating a trajectory you can't enumerate — are agent problems. If you want a workflow, you already have the ingredients.
 
 ---
 
