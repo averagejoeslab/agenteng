@@ -6,7 +6,9 @@ From Anthropic's [*Building Effective Agents*](https://www.anthropic.com/enginee
 
 > Agents are systems where LLMs dynamically direct their own processes and tool usage, maintaining control over how they accomplish tasks.
 
-That's the definition this curriculum commits to. **The model — not your code — decides what to do next.** If your code decides, you have a workflow, not an agent. This curriculum is about agents.
+In plainer terms: **an agent is a reasoning engine within a TAO loop, with the ability to take actions.**
+
+Both say the same thing. The key principle: **the model — not your code — decides what to do next.** If your code decides, you have a workflow, not an agent. This curriculum is about agents.
 
 ## The three ingredients
 
