@@ -117,19 +117,6 @@ flowchart LR
     E -->|refine| G
 ```
 
-### What agents look like
-
-Production examples:
-
-- **Coding agents** — [Claude Code](https://claude.com/claude-code), [Cursor](https://cursor.com), [Devin](https://devin.ai), [Aider](https://aider.chat). The model opens files, edits them, runs tests, iterates.
-- **Research agents** — [OpenAI Deep Research](https://openai.com/index/introducing-deep-research/), Claude's research mode. The model searches, synthesizes, digs deeper.
-- **Task completion agents** — [SWE-agent](https://swe-agent.com), browser-use agents. The model manipulates a filesystem or GUI to complete a task.
-
-In each case, the next action depends on what the previous action produced. The paths can't be enumerated in advance.
-
-> [!IMPORTANT]
-> Most systems marketed as "agents" in 2026 are workflows. That's often the right answer. This curriculum is about the case when it isn't.
-
 ## The Average Joes Lab stance: purist agents only
 
 From Lesson 1 on, this curriculum is purist: **an agent is a system where the model directs its own control flow through a loop of tools.** Workflows are outside the scope of the teaching that follows.
@@ -143,6 +130,19 @@ flowchart LR
 ```
 
 For most production systems a workflow is more reliable, cheaper, and easier to evaluate — [Anthropic makes the same case](https://www.anthropic.com/engineering/building-effective-agents). The interesting engineering problems — designing tools the model will use well, managing an open-ended context, making a non-deterministic loop reliable, evaluating a trajectory you can't enumerate — are agent problems. If you want a workflow, you already have the ingredients.
+
+## What agents look like
+
+Production examples:
+
+- **Coding agents** — [Claude Code](https://claude.com/claude-code), [Cursor](https://cursor.com), [Devin](https://devin.ai), [Aider](https://aider.chat). The model opens files, edits them, runs tests, iterates.
+- **Research agents** — [OpenAI Deep Research](https://openai.com/index/introducing-deep-research/), Claude's research mode. The model searches, synthesizes, digs deeper.
+- **Task completion agents** — [SWE-agent](https://swe-agent.com), browser-use agents. The model manipulates a filesystem or GUI to complete a task.
+
+In each case, the next action depends on what the previous action produced. The paths can't be enumerated in advance.
+
+> [!IMPORTANT]
+> Most systems marketed as "agents" in 2026 are workflows. That's often the right answer. This curriculum is about the case when it isn't.
 
 ---
 
