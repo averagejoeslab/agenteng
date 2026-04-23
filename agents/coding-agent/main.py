@@ -14,68 +14,50 @@ messages = []
 # --- Tools ---
 
 def read(path: str) -> str:
-    try:
-        with open(path, "r") as f:
-            return f.read()
-    except Exception as e:
-        return f"error: {e}"
+    with open(path, "r") as f:
+        return f.read()
 
 
 def write(path: str, content: str) -> str:
-    try:
-        with open(path, "w") as f:
-            f.write(content)
-        return f"wrote {len(content)} chars to {path}"
-    except Exception as e:
-        return f"error: {e}"
+    with open(path, "w") as f:
+        f.write(content)
+    return f"wrote {len(content)} chars to {path}"
 
 
 def edit(path: str, old: str, new: str) -> str:
-    try:
-        with open(path, "r") as f:
-            content = f.read()
-        if old not in content:
-            return f"error: 'old' string not found in {path}"
-        count = content.count(old)
-        if count > 1:
-            return f"error: 'old' appears {count} times — make it more specific"
-        with open(path, "w") as f:
-            f.write(content.replace(old, new))
-        return "ok"
-    except Exception as e:
-        return f"error: {e}"
+    with open(path, "r") as f:
+        content = f.read()
+    if old not in content:
+        return f"error: 'old' string not found in {path}"
+    count = content.count(old)
+    if count > 1:
+        return f"error: 'old' appears {count} times — make it more specific"
+    with open(path, "w") as f:
+        f.write(content.replace(old, new))
+    return "ok"
 
 
 def grep(pattern: str, path: str) -> str:
-    try:
-        regex = re.compile(pattern)
-    except re.error as e:
-        return f"error: invalid regex: {e}"
+    regex = re.compile(pattern)
     hits = []
-    try:
-        for root, _, files in os.walk(path):
-            if ".git" in root or "__pycache__" in root or ".venv" in root:
+    for root, _, files in os.walk(path):
+        if ".git" in root or "__pycache__" in root or ".venv" in root:
+            continue
+        for fname in files:
+            fpath = os.path.join(root, fname)
+            try:
+                with open(fpath) as f:
+                    for i, line in enumerate(f, 1):
+                        if regex.search(line):
+                            hits.append(f"{fpath}:{i}:{line.rstrip()}")
+            except (OSError, UnicodeDecodeError):
                 continue
-            for fname in files:
-                fpath = os.path.join(root, fname)
-                try:
-                    with open(fpath) as f:
-                        for i, line in enumerate(f, 1):
-                            if regex.search(line):
-                                hits.append(f"{fpath}:{i}:{line.rstrip()}")
-                except (OSError, UnicodeDecodeError):
-                    continue
-        return "\n".join(hits[:100]) or "no matches"
-    except Exception as e:
-        return f"error: {e}"
+    return "\n".join(hits[:100]) or "no matches"
 
 
 def glob(pattern: str) -> str:
-    try:
-        matches = sorted(_glob.glob(pattern, recursive=True))
-        return "\n".join(matches) or "no matches"
-    except Exception as e:
-        return f"error: {e}"
+    matches = sorted(_glob.glob(pattern, recursive=True))
+    return "\n".join(matches) or "no matches"
 
 
 def bash(cmd: str) -> str:
@@ -83,12 +65,10 @@ def bash(cmd: str) -> str:
         result = subprocess.run(
             cmd, shell=True, capture_output=True, text=True, timeout=30,
         )
-        out = result.stdout + result.stderr
-        return out.strip() or f"(exit {result.returncode})"
     except subprocess.TimeoutExpired:
         return "error: command timed out after 30s"
-    except Exception as e:
-        return f"error: {e}"
+    out = result.stdout + result.stderr
+    return out.strip() or f"(exit {result.returncode})"
 
 
 # --- Registry ---
@@ -130,7 +110,8 @@ def execute_tool(name: str, input: dict) -> str:
     if tool is None:
         return f"error: unknown tool {name}"
     try:
-        return tool["fn"](**input)
+        result = tool["fn"](**input)
+        return result if isinstance(result, str) else str(result)
     except Exception as e:
         return f"error: {e}"
 

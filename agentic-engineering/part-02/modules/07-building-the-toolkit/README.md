@@ -47,7 +47,7 @@ def edit(path: str, old: str, new: str) -> str:
 
 Design notes:
 
-- Refuses to edit if `old` appears more than once — safety against ambiguous changes.
+- Refuses if `old` appears more than once — safety against ambiguous changes.
 - Refuses if `old` isn't found — better error than a silent no-op.
 - `new` can be empty (effectively a delete).
 
@@ -162,7 +162,7 @@ TOOLS = {
 
 Six tools. No changes needed to `build_tool_schemas()` or `execute_tool()` — the registry pattern handles them.
 
-Make sure the imports at the top of `main.py` include everything the tools need:
+Make sure the imports at the top of `main.py` cover everything the tools need:
 
 ```python
 import os
@@ -173,17 +173,11 @@ from anthropic import Anthropic
 from dotenv import load_dotenv
 ```
 
-## The full file
-
-The complete multi-tool coding agent lives at [`agents/coding-agent/main.py`](../../../../agents/coding-agent/main.py) — that's the end state of Part 2.
-
 ## Running it
 
 ```bash
-uv run coding-agent/main.py
+uv run main.py
 ```
-
-(From the `agents/` directory — the shared `.env` and `.venv` live there.)
 
 Try prompts that require multiple tools:
 
@@ -202,28 +196,35 @@ Yes — both files have `from anthropic import Anthropic`.
 
 (Exact phrasing varies — models are non-deterministic.)
 
-The TAO loop iterates multiple times per turn: the model chains tools (glob → grep, read → edit) to answer multi-step questions.
+The TAO loop iterates multiple times per turn: the model chains tools (`glob` → `grep`, `read` → `edit`) to answer multi-step questions.
 
-## What you have now
+## The repetition problem
 
-A working coding agent with six tools. This is the end state of Part 1 + Part 2, and it lives at `agents/coding-agent/`.
+Look at the six tools you just wrote. Every one of them has this pattern:
 
-The difference from `agents/basic-agent/` (Module 4 end state):
+```python
+def tool(...):
+    try:
+        # do the actual work
+        ...
+    except Exception as e:
+        return f"error: {e}"
+```
 
-- Registry-based dispatch instead of an `if/elif` chain
-- Five more tools (`write`, `edit`, `grep`, `glob`, `bash`)
-- Can chain tools to complete multi-step tasks
+Six `try/except Exception as e: return f"error: {e}"` blocks. Same pattern, six times. If you add a seventh tool, you write it again. If you change the error format, you change it in six places.
+
+That's the itch Module 8 scratches. The executor — `execute_tool` from Module 6 — is the natural place to catch exceptions for *all* tools. Move the try/except up there, and each tool shrinks to its happy path.
 
 ## What's next
 
-The agent is useful, but:
+Module 8 centralizes error handling into the executor. Each tool simplifies to its core logic; the base tool contract becomes explicit.
 
-- **It forgets between sessions.** Conversation resets when you restart. Part 3 (Memory and Context) adds persistent memory.
-- **No tracing.** When it does something wrong, you can't see why. Part 4 (Observability) adds structured traces.
-- **No eval.** You don't know if it's *good*. Part 5 (Evaluation) addresses that.
-- **`bash` runs on the host.** Part 6 (Safety and Guardrails) sandboxes it.
+After Part 2, the agent is capable but has gaps:
 
-First, Module 8 covers MCP — the emerging standard for how tools like these get shared between agents.
+- **No memory across sessions** — Part 3 adds persistence.
+- **No tracing** — Part 4 adds observability.
+- **No eval** — Part 5 adds evaluation.
+- **`bash` runs on the host** — Part 6 adds sandboxing.
 
 ## Prompt your coding agent
 
@@ -251,4 +252,4 @@ The prompt tells your agent *what* to write. The module explains *why* — read 
 
 ---
 
-**Next:** [Module 8: MCP](../08-mcp/)
+**Next:** [Module 8: The tool executor](../08-the-tool-executor/)

@@ -1,8 +1,39 @@
 # Tool design
 
-In Module 4 you added one tool with an ad-hoc `if call.name == "read"` dispatch. That pattern doesn't scale past a handful of tools. Before adding more, we need principles — what makes a tool *good*, what makes a tool *bad*, what dispatchers should look like.
+In Module 4 you added one tool with an ad-hoc `if call.name == "read"` dispatch. That pattern doesn't scale. Before adding more tools, we need to understand what a tool *is* structurally, and what makes one good.
 
-This module is conceptual. Module 6 applies these principles in a refactor; Module 7 uses them to build a real toolkit.
+This module is conceptual. Module 6 turns the principles into a registry; Module 7 uses them to build the toolkit; Module 8 centralizes the pieces that repeat.
+
+## The components of a function tool
+
+A **function tool** has four parts. The model needs all four to use the tool; your code needs all four to run it.
+
+| Part | Lives in | Who reads it |
+|---|---|---|
+| **Function** | Your Python code | Your executor (runs the function) |
+| **Name** | The tool's schema | The model (picks the tool by name) |
+| **Description** | The tool's schema | The model (decides when to use it) |
+| **Schema** | The tool's schema | The model (figures out what to pass) |
+
+Concretely:
+
+```python
+def read(path: str) -> str:           # the function
+    with open(path) as f:
+        return f.read()
+
+{
+    "name": "read",                   # the name
+    "description": "Read a file",     # the description
+    "input_schema": {                 # the schema
+        "type": "object",
+        "properties": {"path": {"type": "string"}},
+        "required": ["path"],
+    },
+}
+```
+
+Designing a tool = getting each of those four parts right. The rest of this module is how.
 
 ## Granularity
 
@@ -37,52 +68,48 @@ def read(path: str) -> str:
         return f.read()   # raises FileNotFoundError if file is missing
 ```
 
-If the file doesn't exist, Python raises an exception. Either your dispatcher catches it — or worse, the whole loop crashes.
+If the file doesn't exist, Python raises an exception. The loop crashes — unless something catches it.
 
-The right pattern:
+The right pattern: the model sees a string describing the failure.
 
-```python
-def read(path: str) -> str:
-    try:
-        with open(path) as f:
-            return f.read()
-    except Exception as e:
-        return f"error: {e}"
+```
+"error: [Errno 2] No such file or directory: 'foo.txt'"
 ```
 
-The function never raises. Errors come back as strings the model can read. It sees `"error: [Errno 2] No such file or directory: 'foo.txt'"` and tries `foo.md` or asks for a directory listing.
+It reads the error, reasons about it ("oh, maybe I meant `foo.md`"), and tries again. **The error message is a self-correction channel.**
 
-**The error message is a self-correction channel.** The model reads it and adjusts. This only works if:
+*Where* the try/except lives is a design decision. Two choices:
 
-1. Tools don't raise — they return errors as strings.
-2. Error messages are informative — they name the specific failure.
-3. The dispatcher catches anything that slips through.
+- **In each tool.** Every tool function catches its own exceptions. Simple, but the same pattern repeats everywhere.
+- **In the executor.** One central function catches exceptions for all tools. DRY; tools stay thin.
 
-This is why Module 4's `read` function already uses `try/except`. It's not defensive coding — it's communication.
+Module 4 put try/except in the tool. Module 6 and 7 continue that way. Module 8 pulls it up into a central executor — *the shift Part 2 is really about.*
 
-## Descriptions: what the model reads
+## Descriptions and naming
 
-The `description` field in a tool schema isn't optional. The model reads it when deciding which tool to use.
+The model reads the `name` and `description` when deciding which tool to use. Both matter.
 
-Good descriptions:
+**Names** — pick canonical ones the model already knows:
 
-- State the one thing the tool does
-- Mention non-obvious constraints (e.g., "only reads UTF-8 files")
-- Use verbs a user might say ("search", not "pattern-match")
+- Good: `read`, `write`, `edit`, `bash`, `grep`, `glob`
+- Avoid: `fileReader`, `textWriter`, `contentSearcher`, `doFileStuff`
 
-Bad descriptions:
+Short, command-line-style names let the model map user requests ("search for TODOs") directly to tools.
 
-- Vague: *"Does stuff with files"*
-- Overloaded: *"Read, search, or list files"* — should be three tools
-- Missing: empty string
+**Descriptions** — state what the tool does in one sentence:
 
-A good rule: write the description so that if you took away the tool name and function signature, the description alone would be enough for the model to know when to use it.
+- Good: *"Read the contents of a file"*
+- Good: *"Search file contents for a regex pattern under a directory"*
+- Avoid: *"Does stuff with files"* (vague)
+- Avoid: *"Read, search, or list files"* (overloaded — should be three tools)
+
+Rule of thumb: if you removed the tool's name and kept only the description, could the model still know when to use it? If yes, the description is good.
 
 ## Schema design
 
-The `input_schema` is a JSON Schema dict. Two properties to get right:
+The `input_schema` is a [JSON Schema](https://json-schema.org/) dict. Two fields drive behavior:
 
-**`properties`** — each argument's type and description. The `description` for each property matters too — the model reads it.
+**`properties`** — each argument's type and description. Put a description on *each* property; the model reads those too.
 
 ```python
 "properties": {
@@ -92,28 +119,13 @@ The `input_schema` is a JSON Schema dict. Two properties to get right:
 }
 ```
 
-**`required`** — which arguments the model *must* provide. Keep this minimal. If a parameter has a sensible default, make it optional.
+**`required`** — which arguments the model *must* provide. Keep this minimal. If a parameter has a sensible default, make it optional so the model can omit it.
 
 ```python
 "required": ["path"]   # offset and limit are optional
 ```
 
-Pitfall: too many required fields mean the model has to guess values for things like `offset=0` when it doesn't care. Let it omit them; use defaults in your function.
-
-## Naming
-
-Pick tool names the model will understand. The model knows common command-line names — `read`, `write`, `grep`, `bash` — better than invented names.
-
-- Good: `read`, `write`, `edit`, `bash`, `grep`, `glob`
-- Avoid: `fileReader`, `textWriter`, `contentSearcher`
-
-Short, canonical names let the model map user requests ("search for TODOs") to tools directly.
-
-## MCP — a standardization effort
-
-As agents proliferate, the same tools get reimplemented across codebases. [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an emerging standard for exposing tools to agents — a protocol for tool interoperability.
-
-Module 8 covers MCP in depth. For now: if you design tools well by the principles above, moving them into an MCP server later is straightforward — the shape is the same.
+Pitfall: too many required fields force the model to guess values (e.g., `offset=0`) when it doesn't care. Let it omit them; use defaults in your function.
 
 ## The tools we'll build
 
@@ -128,7 +140,7 @@ Module 7 builds six tools following these principles:
 | `glob` | Find files by pattern |
 | `bash` | Run a shell command |
 
-Six tools cover most of what a coding agent does: examine files, change files, find things, run things. Module 6 first refactors the dispatcher so adding them is clean; Module 7 writes them.
+Six tools cover most of what a coding agent does: examine files, change files, find things, run things. Module 6 first sets up the registry + factory that makes adding them clean; Module 7 writes them; Module 8 centralizes their error handling.
 
 ---
 

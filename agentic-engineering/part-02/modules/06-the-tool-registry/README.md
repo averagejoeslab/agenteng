@@ -17,9 +17,9 @@ else:
 
 Every new tool adds an `elif` branch AND a separate schema dict at the top of the file. Two places to keep in sync — easy to forget one.
 
-This module replaces that with a **tool registry**: one data structure that defines each tool's function and schema together, with automatic dispatch.
+This module replaces that with a **tool registry**: one data structure that stores each tool's function and metadata together, plus a **factory** that derives the API-shaped schemas from the registry.
 
-## The pattern
+## The registry
 
 A tool registry is a dict mapping tool name to metadata:
 
@@ -34,17 +34,17 @@ TOOLS = {
 }
 ```
 
-Three fields per tool:
+Three fields per tool — matching the components from [Module 5](../05-tool-design/):
 
-- `fn` — the Python function to call
-- `description` — what the model reads
-- `params` — list of parameter names
+- `fn` — the function that does the work
+- `description` — what the model reads to pick the tool
+- `params` — the parameter names (all strings for now)
 
-From this one source of truth, we can auto-generate schemas, dispatch calls by name, and list available tools.
+One structure, one source of truth. Adding a tool means adding one entry.
 
-## Auto-generating schemas
+## The schema factory
 
-Instead of hand-writing `input_schema` dicts, generate them from the `params` list:
+The Anthropic API expects schemas in a specific JSON Schema shape. Instead of hand-writing them, derive them from the registry:
 
 ```python
 def build_tool_schemas(tools):
@@ -63,36 +63,32 @@ def build_tool_schemas(tools):
     return schemas
 ```
 
-Every parameter is a `string` for now. Every parameter is required. Good enough for this module — we'll handle richer types and optionals in Module 7 where the tools need them.
+Every parameter is a `string` for now. Every parameter is required. That's enough for the tools Module 7 adds. Richer types (numbers, optionals) can be added when a tool needs them.
 
 Call this once at startup and pass the result to `client.messages.create(tools=...)`.
 
-## The dispatcher
+## Dispatching by name
 
-One function executes any tool by name:
+A small function looks up a tool in the registry and calls it:
 
 ```python
 def execute_tool(name: str, input: dict) -> str:
     tool = TOOLS.get(name)
     if tool is None:
         return f"error: unknown tool {name}"
-    try:
-        return tool["fn"](**input)
-    except Exception as e:
-        return f"error: {e}"
+    return tool["fn"](**input)
 ```
 
-Three things it handles:
+Two things this does:
 
-1. **Unknown tool names** — returns an error string instead of crashing.
-2. **Tool execution** — looks up the function, unpacks `input` as kwargs.
-3. **Exceptions** — if the tool raises (e.g., wrong argument types from a model hallucination), the error comes back as a string.
+- Handles unknown tool names (returns an error string).
+- Unpacks `input` as kwargs and calls the tool's function.
 
-The `try/except` here is a safety net. Individual tools still catch their own errors (like `read` does with file I/O). The dispatcher's `try/except` catches anything tools miss.
+What it *doesn't* do: catch exceptions from the tool itself. Each tool handles its own errors with `try/except` (as `read` already does from Module 4). Module 8 will centralize that — the executor becomes the single place that wraps every call.
 
 ## Refactoring main.py
 
-Here's the full refactored agent — still just `read` for now (toolkit arrives in Module 7):
+Here's the full refactored agent — still just `read` (toolkit arrives in Module 7):
 
 ```python
 import os
@@ -144,10 +140,7 @@ def execute_tool(name: str, input: dict) -> str:
     tool = TOOLS.get(name)
     if tool is None:
         return f"error: unknown tool {name}"
-    try:
-        return tool["fn"](**input)
-    except Exception as e:
-        return f"error: {e}"
+    return tool["fn"](**input)
 
 
 TOOL_SCHEMAS = build_tool_schemas(TOOLS)
@@ -192,12 +185,13 @@ while True:
         messages.append({"role": "user", "content": results})
 ```
 
-Changes from Module 4:
+Three changes from Module 4:
 
-1. The `tools` list literal is gone. Replaced by `TOOLS` dict + `build_tool_schemas()`.
+1. The hand-written `tools` list literal is gone. Replaced by the `TOOLS` dict + `build_tool_schemas()`.
 2. The `if call.name == "read"` dispatch is gone. Replaced by `execute_tool(call.name, call.input)`.
-3. `tools=TOOL_SCHEMAS` in the API call (computed once).
-4. System prompt simplified — no need to mention specific tools; the model sees them from the schemas.
+3. `tools=TOOL_SCHEMAS` in the API call (computed once at startup).
+
+Error handling still lives in `read` itself — unchanged from Module 4. That stays that way through Module 7.
 
 ## Running it
 
@@ -205,7 +199,7 @@ Changes from Module 4:
 uv run main.py
 ```
 
-Same behavior as Module 4. The refactor doesn't add features — it *prepares* for them. Module 7 plugs in the other five tools.
+Same behavior as Module 4. The refactor doesn't add features — it *prepares* for them. Module 7 plugs in five more tools.
 
 ## Prompt your coding agent
 
@@ -216,9 +210,9 @@ Refactor main.py from the previous module to use a tool registry pattern:
 
 1. Define a TOOLS dict mapping tool name to {fn, description, params}. For now it has one entry for "read" with params=["path"].
 2. Write build_tool_schemas(TOOLS) that generates the JSON Schema list the Anthropic API expects. All parameters are string type; all are required.
-3. Write execute_tool(name, input) that looks up the tool in TOOLS, unpacks input as kwargs, and returns the result — or returns an error string if the tool is unknown or raises.
+3. Write execute_tool(name, input) that looks up the tool and calls its fn with unpacked input. If the name isn't in TOOLS, return an error string. Do NOT wrap the call in try/except — the tool handles its own errors for now.
 4. Replace the ad-hoc if/elif dispatch in the TAO loop with a call to execute_tool.
-5. Compute TOOL_SCHEMAS = build_tool_schemas(TOOLS) once and pass it as the tools parameter to messages.create.
+5. Compute TOOL_SCHEMAS = build_tool_schemas(TOOLS) once at startup and pass it as the tools parameter to messages.create.
 ```
 
 The prompt tells your agent *what* to write. The module explains *why* — read it first.

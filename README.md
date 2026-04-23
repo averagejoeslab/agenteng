@@ -69,12 +69,12 @@ Define the three ingredients. Build them up one at a time. End with a working ag
 4. [First tool](./agentic-engineering/part-01/modules/04-first-tool/)
 
 ### Part 2 — Tool Design
-Grow the minimal agent into a multi-tool system. A proper tool executor, granularity decisions, error messages as the self-correction channel, MCP.
+Grow the minimal agent into a multi-tool system: a tool registry, a six-tool toolkit, and a centralized executor that pulls error handling out of each tool.
 
 5. [Tool design](./agentic-engineering/part-02/modules/05-tool-design/)
 6. [The tool registry](./agentic-engineering/part-02/modules/06-the-tool-registry/)
 7. [Building the toolkit](./agentic-engineering/part-02/modules/07-building-the-toolkit/)
-8. [MCP](./agentic-engineering/part-02/modules/08-mcp/)
+8. [The tool executor](./agentic-engineering/part-02/modules/08-the-tool-executor/)
 
 ### Part 3 — Memory and Context *(coming soon)*
 Persistent memory across sessions, context window as a budget, semantic recall, compaction and eviction.
