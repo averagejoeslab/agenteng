@@ -1,7 +1,7 @@
 [project]
-name = "part-1-agent"
+name = "basic-agent"
 version = "0.1.0"
-description = "Add your description here"
+description = "A minimal coding agent built across Part 1 of the agenteng content."
 requires-python = ">=3.13"
 dependencies = [
     "anthropic>=0.97.0",

@@ -21,6 +21,28 @@ You'll start by building a minimal coding agent in Python. Then you'll grow it i
 
 **No frameworks. Just primitives and the reasoning behind them.**
 
+## The basic agent
+
+This repo is both the content *and* a runnable reference. At the root is `basic-agent` — the minimal coding agent Part 1 produces: a terminal REPL around a TAO loop, with `read` as its first tool. Each subsequent Part grows this same project.
+
+Run it:
+
+```bash
+cp .env.example .env          # paste your Anthropic API key
+uv sync                        # install deps from uv.lock
+uv run main.py                 # start the REPL
+```
+
+Then at the `❯` prompt:
+
+```
+❯ What's in pyproject.toml?
+❯ Does main.py import python-dotenv?
+❯ /q
+```
+
+The model calls `read(path=...)` when it needs to examine a file.
+
 ## Content
 
 ### Part 0 — Prereqs
