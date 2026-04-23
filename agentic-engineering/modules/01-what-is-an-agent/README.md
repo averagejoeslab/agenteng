@@ -1,14 +1,6 @@
 # What is an agent?
 
-## The definition
-
-From Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents):
-
-> Agents are systems where LLMs dynamically direct their own processes and tool usage, maintaining control over how they accomplish tasks.
-
-In plainer terms: **an agent is a reasoning model within a loop where it can think, act, and observe within an environment.**
-
-Both say the same thing. The key principle: **the model — not your code — decides what to do next.** If your code decides, you have a workflow, not an agent. This content is about agents.
+An agent is a reasoning model within a loop where it can think, act, and observe within an environment. This module names the ingredients; the next five build them.
 
 ## The three ingredients
 
@@ -18,7 +10,7 @@ An agent has three moving parts:
 2. **A TAO loop** (Think, Act, Observe) — the structure that turns single calls into sustained work
 3. **Tools** — the agent's means of acting on its environment
 
-And one rule that binds them together: **the model directs the loop.** Your code runs the loop and executes tools, but the model decides *which* tool to call, *when*, and *when to stop*.
+Plus one rule: the loop runs in your code, but the model decides what happens inside — which tool to call, when, and when to stop.
 
 ## The TAO cycle
 
@@ -35,13 +27,11 @@ The cycle repeats: Think → Act → Observe → Think → ... until the model s
 
 ## In practice
 
-With the concept in hand, the three ingredients are ordinary engineering pieces:
+The three ingredients are ordinary engineering pieces:
 
 - **The LLM call** is an HTTP POST to the model provider's API, returning reasoning text and (optionally) a tool request in the same response
 - **The loop** is a `while True:` that exits when the model stops requesting tools
 - **Tools** are plain Python functions with a JSON schema (a `dict`) describing their inputs; your code runs them and appends the result to the conversation before calling the LLM again
-
-What makes the system agentic isn't any one of these pieces — it's how they fit together so the model drives the control flow.
 
 ```mermaid
 flowchart LR
@@ -71,7 +61,7 @@ User: "Find and summarize the TODOs in this codebase"
 [STOP]     "You have 47 TODOs across 12 files, concentrated in auth..."
 ```
 
-The model chose every action, read every result, and decided when to stop. No predetermined path — that's what the Anthropic definition means by *dynamically directing its own processes*.
+The model chose every action, read every result, and decided when to stop.
 
 ## What we'll build
 
