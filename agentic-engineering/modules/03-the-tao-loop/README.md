@@ -127,4 +127,4 @@ The runtime shape is complete: a REPL that wraps a TAO loop. Prompts go in, resp
 
 ---
 
-**Next:** Module 4: First tool *(coming soon)*
+**Next:** [Module 4: First tool](../04-first-tool/)

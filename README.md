@@ -38,7 +38,7 @@ Define the three ingredients. Build them up one at a time. End with a working ag
 1. [What is an agent?](./agentic-engineering/modules/01-what-is-an-agent/)
 2. [A single LLM call](./agentic-engineering/modules/02-a-single-llm-call/)
 3. [The TAO loop](./agentic-engineering/modules/03-the-tao-loop/)
-4. Tools *(coming soon)*
+4. [First tool](./agentic-engineering/modules/04-first-tool/)
 
 ### Part 2 — Tool Design *(coming soon)*
 Grow the minimal agent into a multi-tool system. A proper tool executor, granularity decisions, error messages as the self-correction channel, MCP.
