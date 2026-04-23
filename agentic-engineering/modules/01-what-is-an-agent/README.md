@@ -10,8 +10,6 @@ An agent has three moving parts:
 2. **A TAO loop** (Think, Act, Observe) — the structure that turns single calls into sustained work
 3. **Tools** — the agent's means of acting on its environment
 
-Plus one rule: the loop runs in your code, but the model decides what happens inside — which tool to call, when, and when to stop.
-
 ## The TAO cycle
 
 Each iteration of the loop has three phases:
