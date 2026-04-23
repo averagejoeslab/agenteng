@@ -53,7 +53,7 @@ The model calls `read(path=...)` when it needs to examine a file.
 ### Part 0 — Prereqs
 Read the orientation and set up your environment before starting Part 1.
 
-- [Module 0: What is agentic engineering?](./agentic-engineering/modules/00-what-is-agentic-engineering/) — the discipline, the landscape, what agentic engineers do
+- [Module 0: What is agentic engineering?](./agentic-engineering/part-00/modules/00-what-is-agentic-engineering/) — the discipline, the landscape, what agentic engineers do
 - Comfort reading Python
 - [Python 3.13 or newer](https://www.python.org/downloads/)
 - [uv](https://docs.astral.sh/uv/) for dependency management
@@ -62,10 +62,10 @@ Read the orientation and set up your environment before starting Part 1.
 ### Part 1 — The Agent
 Define the three ingredients. Build them up one at a time. End with a working agent.
 
-1. [What is an agent?](./agentic-engineering/modules/01-what-is-an-agent/)
-2. [A single LLM call](./agentic-engineering/modules/02-a-single-llm-call/)
-3. [The TAO loop](./agentic-engineering/modules/03-the-tao-loop/)
-4. [First tool](./agentic-engineering/modules/04-first-tool/)
+1. [What is an agent?](./agentic-engineering/part-01/modules/01-what-is-an-agent/)
+2. [A single LLM call](./agentic-engineering/part-01/modules/02-a-single-llm-call/)
+3. [The TAO loop](./agentic-engineering/part-01/modules/03-the-tao-loop/)
+4. [First tool](./agentic-engineering/part-01/modules/04-first-tool/)
 
 ### Part 2 — Tool Design *(coming soon)*
 Grow the minimal agent into a multi-tool system. A proper tool executor, granularity decisions, error messages as the self-correction channel, MCP.

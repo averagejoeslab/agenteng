@@ -4,9 +4,9 @@ The minimal coding agent Part 1 produces. Terminal REPL wrapping a TAO (Think, A
 
 Built step by step across Modules 2–4:
 
-- **[Module 2](../../agentic-engineering/modules/02-a-single-llm-call/)** — a single LLM call
-- **[Module 3](../../agentic-engineering/modules/03-the-tao-loop/)** — the TAO loop + terminal environment
-- **[Module 4](../../agentic-engineering/modules/04-first-tool/)** — the first tool (this agent's end state)
+- **[Module 2](../../agentic-engineering/part-01/modules/02-a-single-llm-call/)** — a single LLM call
+- **[Module 3](../../agentic-engineering/part-01/modules/03-the-tao-loop/)** — the TAO loop + terminal environment
+- **[Module 4](../../agentic-engineering/part-01/modules/04-first-tool/)** — the first tool (this agent's end state)
 
 ## Run it
 

@@ -150,4 +150,4 @@ In each case, the next action depends on what the previous action produced. The 
 
 ---
 
-**Next:** [Module 1: What is an agent?](../01-what-is-an-agent/)
+**Next:** [Module 1: What is an agent?](../../../part-01/modules/01-what-is-an-agent/)
