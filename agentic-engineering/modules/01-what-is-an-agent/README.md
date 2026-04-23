@@ -31,6 +31,71 @@ The three ingredients are ordinary engineering pieces:
 - **The loop** is a `while True:` that exits when the model stops requesting tools
 - **Tools** are plain Python functions with a JSON schema (a `dict`) describing their inputs; your code runs them and appends the result to the conversation before calling the LLM again
 
+The shape in code:
+
+```python
+import os
+from anthropic import Anthropic
+
+client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+# A minimal tool
+def add(a: int, b: int) -> str:
+    return str(a + b)
+
+tools = [
+    {
+        "name": "add",
+        "description": "Add two numbers",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "a": {"type": "number"},
+                "b": {"type": "number"},
+            },
+            "required": ["a", "b"],
+        },
+    }
+]
+
+messages = [{"role": "user", "content": "What is 2 + 2? Use the add tool."}]
+
+while True:
+    # THINK: the LLM runs; it emits text + optional tool requests
+    response = client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=1024,
+        messages=messages,
+        tools=tools,
+    )
+    messages.append({"role": "assistant", "content": response.content})
+
+    # No tool requests → the model is done
+    tool_calls = [b for b in response.content if b.type == "tool_use"]
+    if not tool_calls:
+        break
+
+    # ACT: execute the tools the model requested
+    results = []
+    for call in tool_calls:
+        output = add(**call.input)
+        results.append({
+            "type": "tool_result",
+            "tool_use_id": call.id,
+            "content": output,
+        })
+
+    # OBSERVE: append the results to the conversation
+    messages.append({"role": "user", "content": results})
+
+# Print the final text from the model
+for block in response.content:
+    if block.type == "text":
+        print(block.text)
+```
+
+Setup (API key, `uv`, dependencies) comes in [Module 2](../02-a-single-llm-call/); the pieces — LLM call, loop, tools — are built up one at a time across Modules 2–5.
+
 ```mermaid
 flowchart LR
     Start[User input] --> Think[THINK<br/>LLM call]
