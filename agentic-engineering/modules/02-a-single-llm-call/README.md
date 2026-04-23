@@ -24,8 +24,8 @@ mkdir agent && cd agent
 # Initialize with uv
 uv init
 
-# Add the Anthropic Python SDK
-uv add anthropic
+# Add the Anthropic Python SDK and python-dotenv for loading .env
+uv add anthropic python-dotenv
 
 # Store your API key in a .env file
 echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env
@@ -38,6 +38,9 @@ Create `main.py`:
 ```python
 import os
 from anthropic import Anthropic
+from dotenv import load_dotenv
+
+load_dotenv()
 
 client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
@@ -82,6 +85,23 @@ That's the whole mechanic. The model saw the user message, generated a response,
 - **No tools.** The model can only produce text; it can't act.
 
 Module 3 wraps this call in the loop structure so it's ready for tools.
+
+## Prompt your coding agent
+
+If you want your coding agent (Claude Code, Cursor, etc.) to write this for you, paste:
+
+```
+Create main.py in a project initialized with `uv init`. The project has `anthropic` and `python-dotenv` installed. In main.py:
+
+- Load ANTHROPIC_API_KEY from a .env file using python-dotenv
+- Use the Anthropic Python SDK to make one call to model claude-sonnet-4-5 with max_tokens 1024 and system prompt "You are a helpful assistant."
+- Send the user message "What is 2 + 2?"
+- Print the text from the first content block of the response
+
+Keep it minimal — no loop, no tools, no error handling.
+```
+
+The prompt tells your agent *what* to write. The module explains *why* — read it first.
 
 ---
 

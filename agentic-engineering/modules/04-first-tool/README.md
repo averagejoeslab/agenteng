@@ -67,6 +67,9 @@ Extend `main.py` from Module 3:
 ```python
 import os
 from anthropic import Anthropic
+from dotenv import load_dotenv
+
+load_dotenv()
 
 client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 messages = []
@@ -188,6 +191,26 @@ The agent works, but it's minimal:
 - **No memory across sessions.** The conversation resets every time you restart the REPL.
 
 Part 2 (Tool Design) addresses the first three: a proper tool registry, dispatching executor, and error-message design. Part 3 (Memory and Context) handles the fourth.
+
+## Prompt your coding agent
+
+If you want your coding agent to write this for you, paste:
+
+```
+Extend main.py from the previous module by adding a single tool called "add":
+
+1. Define `def add(a, b) -> str` that returns str(a + b)
+2. Define a `tools` list with one entry:
+   - name: "add"
+   - description: "Add two numbers"
+   - input_schema: JSON Schema dict with properties "a" and "b" (both numbers), both required
+3. Pass tools=tools to the messages.create call
+4. Update the system prompt to mention the add tool is available for arithmetic
+5. Fill the ACT stub: for each tool_use block in the response, dispatch on call.name, execute the matching function with call.input, and collect results as tool_result dicts (with matching tool_use_id and content being the function's string output)
+6. Fill the OBSERVE stub: append the list of tool_result dicts as a new user message so they feed back into the next iteration of the TAO loop
+```
+
+The prompt tells your agent *what* to write. The module explains *why* — read it first.
 
 ---
 

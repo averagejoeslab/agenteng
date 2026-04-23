@@ -43,6 +43,9 @@ Extend `main.py`:
 ```python
 import os
 from anthropic import Anthropic
+from dotenv import load_dotenv
+
+load_dotenv()
 
 client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 messages = []
@@ -124,6 +127,30 @@ The runtime shape is complete: a REPL that wraps a TAO loop. Prompts go in, resp
 ## What's missing
 
 - **No tools.** The model can only produce text. When it can't solve a problem from pure knowledge, it has no way to go look things up or do anything about it. Module 4 adds the first tool — and the system becomes a minimal agent.
+
+## Prompt your coding agent
+
+If you want your coding agent to write this for you, paste:
+
+```
+Extend main.py from the previous module with two nested while True loops:
+
+Outer (the REPL / terminal environment):
+- Read user input with the prompt "❯ "
+- Break if the input is "/q" or "exit"
+- Otherwise append it as a user message
+
+Inner (the TAO loop):
+- Call the LLM with the accumulated messages
+- Append the assistant's response to messages
+- Print any text blocks the model produced
+- Break if the response has no tool_use blocks
+- Leave comments where ACT (execute tools) and OBSERVE (feed results back) will go — tools aren't added yet
+
+The messages list should live outside the outer loop so the conversation persists across turns.
+```
+
+The prompt tells your agent *what* to write. The module explains *why* — read it first.
 
 ---
 
