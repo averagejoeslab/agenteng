@@ -139,7 +139,7 @@ For most production systems a workflow is more reliable, cheaper, and easier to 
 
 Production examples:
 
-- **Coding agents** — [Claude Code](https://claude.com/claude-code), [Cursor](https://cursor.com), [Devin](https://devin.ai), [Aider](https://aider.chat). The model opens files, edits them, runs tests, iterates.
+- **Coding agents** — [Claude Code](https://claude.com/claude-code), [Cursor](https://cursor.com), [Devin](https://devin.ai), [Aider](https://aider.chat), [nanodeepagent](https://github.com/chrispangg/nanodeepagent). The model opens files, edits them, runs tests, iterates.
 - **Research agents** — [OpenAI Deep Research](https://openai.com/index/introducing-deep-research/), Claude's research mode. The model searches, synthesizes, digs deeper.
 - **Task completion agents** — [SWE-agent](https://swe-agent.com), browser-use agents. The model manipulates a filesystem or GUI to complete a task.
 
