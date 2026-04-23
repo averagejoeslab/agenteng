@@ -2,6 +2,8 @@
 
 This module adds a single tool to the REPL agent from Module 3. With one tool in place, the TAO loop finally iterates — the model decides when to call it, your code executes it, the result flows back. The system crosses the threshold from "chatbot in a loop" to **minimal agent**.
 
+The tool we're adding is `read`: read the contents of a file. That gives the model its first way to reach out of the LLM and into the environment — in this case, the filesystem it's running next to.
+
 ## The tool-use protocol
 
 When the LLM has tools, it can emit `tool_use` blocks in its response. Each is a structured request:
@@ -17,15 +19,15 @@ sequenceDiagram
     participant User
     participant Agent as REPL + TAO loop
     participant LLM
-    participant Tool as add
+    participant Tool as read
 
-    User->>Agent: "What is 47 + 153?"
+    User->>Agent: "What's in pyproject.toml?"
     Agent->>LLM: messages + tool schemas
-    LLM-->>Agent: tool_use: add(a=47, b=153)
-    Agent->>Tool: add(47, 153)
-    Tool-->>Agent: "200"
+    LLM-->>Agent: tool_use: read(path="pyproject.toml")
+    Agent->>Tool: read("pyproject.toml")
+    Tool-->>Agent: [file contents]
     Agent->>LLM: tool_result + history
-    LLM-->>Agent: "47 + 153 = 200"
+    LLM-->>Agent: "Your pyproject.toml declares..."
     Agent->>User: display response
 ```
 
@@ -34,20 +36,23 @@ sequenceDiagram
 A tool is two pieces: a Python function that does the work, and a schema that tells the model how to call it.
 
 ```python
-def add(a: int, b: int) -> str:
-    return str(a + b)
+def read(path: str) -> str:
+    try:
+        with open(path, "r") as f:
+            return f.read()
+    except Exception as e:
+        return f"error: {e}"
 
 tools = [
     {
-        "name": "add",
-        "description": "Add two numbers",
+        "name": "read",
+        "description": "Read the contents of a file",
         "input_schema": {
             "type": "object",
             "properties": {
-                "a": {"type": "number"},
-                "b": {"type": "number"},
+                "path": {"type": "string", "description": "Path to the file to read"},
             },
-            "required": ["a", "b"],
+            "required": ["path"],
         },
     }
 ]
@@ -58,7 +63,7 @@ The schema is a [JSON Schema](https://json-schema.org/) dict. Two fields matter 
 - **`properties`** — what arguments the tool takes and their types
 - **`required`** — which arguments are mandatory
 
-The tool returns a string. Numbers, JSON, free text — whatever the model needs to read.
+The tool returns a string. The `try/except` catches errors (missing file, permission denied) and returns them as strings — so the model can read the error and try again instead of crashing the loop. Part 2 covers error design more thoroughly; for now, the pattern to remember is *errors are strings the model can read*.
 
 ## Wiring it into the loop
 
@@ -75,20 +80,23 @@ client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 messages = []
 
 # The tool
-def add(a: int, b: int) -> str:
-    return str(a + b)
+def read(path: str) -> str:
+    try:
+        with open(path, "r") as f:
+            return f.read()
+    except Exception as e:
+        return f"error: {e}"
 
 tools = [
     {
-        "name": "add",
-        "description": "Add two numbers",
+        "name": "read",
+        "description": "Read the contents of a file",
         "input_schema": {
             "type": "object",
             "properties": {
-                "a": {"type": "number"},
-                "b": {"type": "number"},
+                "path": {"type": "string", "description": "Path to the file to read"},
             },
-            "required": ["a", "b"],
+            "required": ["path"],
         },
     }
 ]
@@ -107,7 +115,7 @@ while True:
         response = client.messages.create(
             model="claude-sonnet-4-5",
             max_tokens=1024,
-            system="You are a helpful assistant. Use the add tool when you need to add two numbers.",
+            system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
             messages=messages,
             tools=tools,
         )
@@ -126,8 +134,8 @@ while True:
         # ACT: execute each tool the model requested
         results = []
         for call in tool_calls:
-            if call.name == "add":
-                output = add(**call.input)
+            if call.name == "read":
+                output = read(**call.input)
             else:
                 output = f"error: unknown tool {call.name}"
             results.append({
@@ -143,7 +151,7 @@ while True:
 Three changes from Module 3:
 
 1. **`tools=tools`** added to the `create()` call — gives the model the schema.
-2. **ACT section** fills the stub — executes each requested tool. The `if call.name == "add"` dispatch is minimal for now; Part 2 replaces it with a proper registry.
+2. **ACT section** fills the stub — executes each requested tool. The `if call.name == "read"` dispatch is minimal for now; Part 2 replaces it with a proper registry.
 3. **OBSERVE section** fills the stub — packages results as `tool_result` blocks with matching `tool_use_id`, then appends them as a user message so the model sees them on the next iteration.
 
 ## Running it
@@ -152,14 +160,15 @@ Three changes from Module 3:
 uv run main.py
 ```
 
-A session:
+A session (run it from your project directory so the relative paths work):
 
 ```
-❯ What is 47 + 153?
-I'll use the add tool to calculate that.
-47 + 153 = 200
-❯ What about 8 + 12?
-8 + 12 = 20
+❯ What's in pyproject.toml?
+I'll check the file.
+Your pyproject.toml declares a project named "agent" with Python 3.13+ and anthropic and python-dotenv as dependencies.
+❯ Does main.py import python-dotenv?
+Let me look.
+Yes — main.py imports load_dotenv from dotenv and calls it before creating the Anthropic client.
 ❯ /q
 ```
 
@@ -167,19 +176,20 @@ I'll use the add tool to calculate that.
 
 The TAO loop now runs **multiple iterations per REPL turn**:
 
-1. **THINK** — model sees the question, emits `tool_use: add(a=47, b=153)`
-2. **ACT** — your code runs `add(47, 153)` → `"200"`
+1. **THINK** — model sees the question, emits `tool_use: read(path="pyproject.toml")`
+2. **ACT** — your code runs `read("pyproject.toml")` → file contents as a string
 3. **OBSERVE** — result appended to messages
-4. **THINK (again)** — model now has the result, produces text: *"47 + 153 = 200"*
+4. **THINK (again)** — model now has the file contents, produces summary text
 5. No more tool requests → break out of the TAO loop, return to REPL
 
 The dashed boxes in Module 3's diagram are now solid.
 
 ## What just changed
 
-- **The TAO loop actually iterates.** Before, it ran exactly once per REPL turn (no tools to request). Now every tool call causes at least one extra iteration.
-- **The model directs the flow.** Your code didn't decide to call `add` — the model did. Your code just executed what was asked for.
-- **The system has autonomy over its own control flow.** Given a question it can't answer directly, the model reaches for a tool; given a result, it decides what to say next.
+- **The TAO loop actually iterates.** Before, it ran exactly once per REPL turn (no tools to request). Now every question that requires a file read causes at least one extra iteration.
+- **The model directs the flow.** Your code didn't decide to call `read` — the model did. Your code just executed what was asked for.
+- **The system has autonomy over its own control flow.** Given a question it can't answer directly, the model reaches for a tool; given the file contents, it decides what to say next.
+- **The agent can now see its environment.** The filesystem was always there; now the model has a way to look at it.
 
 By the [Anthropic definition](https://www.anthropic.com/engineering/building-effective-agents) from Module 0, this is an agent. Not a chatbot (has tools), not a workflow (the model directs the sequence).
 
@@ -187,27 +197,27 @@ By the [Anthropic definition](https://www.anthropic.com/engineering/building-eff
 
 The agent works, but it's minimal:
 
-- **Only one tool.** Real agents have toolkits — read files, write files, search, execute code.
-- **The executor is ad-hoc.** The `if call.name == "add"` dispatch doesn't scale past a handful of tools.
-- **No error handling.** A tool that raises an exception crashes the loop instead of letting the model self-correct.
+- **Only one tool.** It can read, but it can't write, edit, search, or run anything. A real coding agent needs a toolkit.
+- **The executor is ad-hoc.** The `if call.name == "read"` dispatch doesn't scale past a handful of tools.
+- **The error-return pattern is there but underspecified.** Errors come back as strings; in Part 2 we'll formalize this as the model's self-correction channel.
 - **No memory across sessions.** The conversation resets every time you restart the REPL.
 
-Part 2 (Tool Design) addresses the first three: a proper tool registry, dispatching executor, and error-message design. Part 3 (Memory and Context) handles the fourth.
+Part 2 (Tool Design) addresses the first three: a proper tool registry, dispatching executor, error-message design, and a multi-tool toolkit (`read`, `write`, `edit`, `bash`, `grep`, `glob`). Part 3 (Memory and Context) handles the fourth.
 
 ## Prompt your coding agent
 
 If you want your coding agent to write this for you, paste:
 
 ```
-Extend main.py from the previous module by adding a single tool called "add":
+Extend main.py from the previous module by adding a single tool called "read":
 
-1. Define `def add(a, b) -> str` that returns str(a + b)
+1. Define `def read(path: str) -> str` that opens the file at `path`, returns its contents, and catches any exception returning the error as a string (so the model can self-correct instead of crashing the loop)
 2. Define a `tools` list with one entry:
-   - name: "add"
-   - description: "Add two numbers"
-   - input_schema: JSON Schema dict with properties "a" and "b" (both numbers), both required
+   - name: "read"
+   - description: "Read the contents of a file"
+   - input_schema: JSON Schema dict with property "path" (string with a short description), required
 3. Pass tools=tools to the messages.create call
-4. Update the system prompt to mention the add tool is available for arithmetic
+4. Update the system prompt to be a helpful coding assistant that uses the read tool when it needs to examine file contents
 5. Fill the ACT stub: for each tool_use block in the response, dispatch on call.name, execute the matching function with call.input, and collect results as tool_result dicts (with matching tool_use_id and content being the function's string output)
 6. Fill the OBSERVE stub: append the list of tool_result dicts as a new user message so they feed back into the next iteration of the TAO loop
 ```

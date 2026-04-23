@@ -68,26 +68,29 @@ Module 3 wraps this loop around an LLM call inside a terminal REPL environment.
 A tool is a Python function plus a JSON schema describing its inputs. The schema tells the model how to call it.
 
 ```python
-def add(a: int, b: int) -> str:
-    return str(a + b)
+def read(path: str) -> str:
+    try:
+        with open(path, "r") as f:
+            return f.read()
+    except Exception as e:
+        return f"error: {e}"
 
 tools = [
     {
-        "name": "add",
-        "description": "Add two numbers",
+        "name": "read",
+        "description": "Read the contents of a file",
         "input_schema": {
             "type": "object",
             "properties": {
-                "a": {"type": "number"},
-                "b": {"type": "number"},
+                "path": {"type": "string"},
             },
-            "required": ["a", "b"],
+            "required": ["path"],
         },
     }
 ]
 ```
 
-The tool returns a string — numbers, JSON, free text, whatever the model needs to read. Module 4 wires this into the loop so the model can request it.
+The tool returns a string. If something goes wrong, it returns the error as a string so the model can self-correct instead of crashing the loop. Module 4 wires this into the loop so the model can request it.
 
 ## Putting it together
 
@@ -103,32 +106,35 @@ load_dotenv()
 client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 # A minimal tool
-def add(a: int, b: int) -> str:
-    return str(a + b)
+def read(path: str) -> str:
+    try:
+        with open(path, "r") as f:
+            return f.read()
+    except Exception as e:
+        return f"error: {e}"
 
 tools = [
     {
-        "name": "add",
-        "description": "Add two numbers",
+        "name": "read",
+        "description": "Read the contents of a file",
         "input_schema": {
             "type": "object",
             "properties": {
-                "a": {"type": "number"},
-                "b": {"type": "number"},
+                "path": {"type": "string"},
             },
-            "required": ["a", "b"],
+            "required": ["path"],
         },
     }
 ]
 
-messages = [{"role": "user", "content": "What is 2 + 2?"}]
+messages = [{"role": "user", "content": "What's in pyproject.toml?"}]
 
 while True:
     # THINK: the LLM runs; it emits text + optional tool requests
     response = client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=1024,
-        system="You are a helpful assistant. Use the add tool when you need to add two numbers.",
+        system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
         messages=messages,
         tools=tools,
     )
@@ -142,7 +148,7 @@ while True:
     # ACT: execute the tools the model requested
     results = []
     for call in tool_calls:
-        output = add(**call.input)
+        output = read(**call.input)
         results.append({
             "type": "tool_result",
             "tool_use_id": call.id,
