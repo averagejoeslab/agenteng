@@ -226,4 +226,4 @@ The prompt tells your agent *what* to write. The module explains *why* — read 
 
 ---
 
-**Next:** Part 2 — Tool Design *(coming soon)*
+**Next:** [Module 5: Tool design](../../../part-02/modules/05-tool-design/)
