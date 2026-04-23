@@ -5,3 +5,8 @@ node_modules/
 *.log
 .vscode/
 .idea/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
