@@ -38,9 +38,7 @@ Define the three ingredients. Build them up one at a time. End with a working ag
 1. [What is an agent?](./agentic-engineering/modules/01-what-is-an-agent/)
 2. [A single LLM call](./agentic-engineering/modules/02-a-single-llm-call/)
 3. [The TAO loop](./agentic-engineering/modules/03-the-tao-loop/)
-4. The terminal environment *(coming soon)*
-5. The first tool *(coming soon)*
-6. More tools *(coming soon)*
+4. Tools *(coming soon)*
 
 ### Part 2 — Memory *(coming soon)*
 Session memory, persistent trace, context windows, semantic recall.

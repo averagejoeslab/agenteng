@@ -94,7 +94,7 @@ for block in response.content:
         print(block.text)
 ```
 
-Setup (API key, `uv`, dependencies) comes in [Module 2](../02-a-single-llm-call/); the pieces — LLM call, loop, tools — are built up one at a time across Modules 2–5.
+Setup (API key, `uv`, dependencies) comes in [Module 2](../02-a-single-llm-call/); the pieces — LLM call, loop, environment, tools — are built up one at a time across Modules 2–4.
 
 ```mermaid
 flowchart LR
@@ -128,17 +128,15 @@ The model chose every action, read every result, and decided when to stop.
 
 ## What we'll build
 
-The next five modules add one piece at a time:
+The next three modules add one piece at a time:
 
 | Module | Added | What it becomes |
 |---|---|---|
 | 2 | LLM call | A one-shot script |
-| 3 | TAO loop (empty) | The loop structure with no tools to call |
-| 4 | Terminal environment | An interactive REPL around the loop |
-| 5 | First tool | **An agent** |
-| 6 | More tools | A full toolkit |
+| 3 | TAO loop + terminal environment | An interactive REPL running the loop |
+| 4 | Tools | **An agent** |
 
-By Module 6 you'll have a working coding agent in Python. Each module ends with something that runs.
+By Module 4 you'll have a working coding agent in Python. Each module ends with something that runs.
 
 ## What you'll need
 
