@@ -106,6 +106,8 @@ You asked what 2 + 2 equals.
 ❯ /q
 ```
 
+(Exact phrasing varies — models are non-deterministic.)
+
 The model remembers the previous turn because `messages` accumulates across REPL turns.
 
 ## Why the TAO loop still exits immediately

@@ -1,6 +1,6 @@
 # What is an agent?
 
-An agent is an LLM within a loop where it can think, act, and observe within an environment. This module names the ingredients; the next five build them.
+An agent is an LLM within a loop where it can think, act, and observe within an environment. This module names the ingredients; the next three build them.
 
 ## The three ingredients
 
@@ -36,6 +36,9 @@ The shape in code:
 ```python
 import os
 from anthropic import Anthropic
+from dotenv import load_dotenv
+
+load_dotenv()
 
 client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
@@ -58,13 +61,14 @@ tools = [
     }
 ]
 
-messages = [{"role": "user", "content": "What is 2 + 2? Use the add tool."}]
+messages = [{"role": "user", "content": "What is 2 + 2?"}]
 
 while True:
     # THINK: the LLM runs; it emits text + optional tool requests
     response = client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=1024,
+        system="You are a helpful assistant. Use the add tool when you need to add two numbers.",
         messages=messages,
         tools=tools,
     )

@@ -163,6 +163,8 @@ I'll use the add tool to calculate that.
 ❯ /q
 ```
 
+(Exact phrasing varies — models are non-deterministic.)
+
 The TAO loop now runs **multiple iterations per REPL turn**:
 
 1. **THINK** — model sees the question, emits `tool_use: add(a=47, b=153)`
