@@ -1,12 +1,12 @@
 # What is an agent?
 
-An agent is a reasoning model within a loop where it can think, act, and observe within an environment. This module names the ingredients; the next five build them.
+An agent is an LLM within a loop where it can think, act, and observe within an environment. This module names the ingredients; the next five build them.
 
 ## The three ingredients
 
 An agent has three moving parts:
 
-1. **An LLM call** — the reasoning model
+1. **An LLM call** — the reasoning engine
 2. **A TAO loop** (Think, Act, Observe) — the structure that turns single calls into sustained work
 3. **Tools** — the agent's means of acting on its environment
 
@@ -14,9 +14,9 @@ An agent has three moving parts:
 
 Each iteration of the loop has three phases:
 
-1. **THINK** — the LLM reasons about what to do
-2. **ACT** — it chooses a tool to call
-3. **OBSERVE** — the tool's result is fed back into its context
+1. **THINK** — the LLM runs; it emits reasoning text and (optionally) tool requests
+2. **ACT** — your code executes the tools the model requested
+3. **OBSERVE** — the results are appended to the conversation
 
 The cycle repeats: Think → Act → Observe → Think → ... until the model stops requesting tools. That's the end of the turn.
 
@@ -51,7 +51,7 @@ User: "Find and summarize the TODOs in this codebase"
 [OBSERVE]  src/auth.ts:42:  // TODO: session expiration
            src/auth.ts:87:  // TODO: rate limiting
            src/db.ts:14:    // TODO: connection pooling
-           ... (47 lines across 12 files)
+           [...44 more matches]
 [THINK]    Most are in src/auth.ts — I'll read that file for context
 [ACT]      read("src/auth.ts")
 [OBSERVE]  [full file contents]
