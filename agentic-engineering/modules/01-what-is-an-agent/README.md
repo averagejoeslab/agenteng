@@ -1,8 +1,8 @@
 # What is an agent?
 
-An agent is an LLM within a loop where it can think, act, and observe within an environment. This module names the ingredients; the next three build them.
+An agent is an LLM within a loop where it can think, act, and observe within an environment. This module breaks that down into basic components and shows what each looks like; the next three modules build them.
 
-## The three ingredients
+## Basic components of an agent
 
 An agent has three moving parts:
 
@@ -10,28 +10,88 @@ An agent has three moving parts:
 2. **A TAO loop** (Think, Act, Observe) — the structure that turns single calls into sustained work
 3. **Tools** — the agent's means of acting on its environment
 
-## The TAO cycle
+## Show an LLM call
 
-Each iteration of the loop has three phases:
+An LLM call is an HTTP POST to the model provider's API. The response comes back as a list of content blocks — text, and optionally tool requests.
+
+```python
+response = client.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "What is 2 + 2?"}],
+)
+print(response.content[0].text)
+```
+
+One prompt in, one response out. Module 2 builds this from scratch.
+
+## Show a TAO loop
+
+Each iteration has three phases: **Think, Act, Observe**.
 
 1. **THINK** — the LLM runs; it emits reasoning text and (optionally) tool requests
 2. **ACT** — your code executes the tools the model requested
 3. **OBSERVE** — the results are appended to the conversation
 
-The cycle repeats: Think → Act → Observe → Think → ... until the model stops requesting tools. That's the end of the turn.
+The cycle repeats: Think → Act → Observe → Think → ... until the model produces no more tool requests. That's the end of the turn.
+
+```python
+while True:
+    # THINK: call the model
+    response = client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=1024,
+        messages=messages,
+        tools=tools,
+    )
+    messages.append({"role": "assistant", "content": response.content})
+
+    # If no tool_use blocks, the model is done
+    tool_calls = [b for b in response.content if b.type == "tool_use"]
+    if not tool_calls:
+        break
+
+    # ACT: run each tool the model requested
+    results = [execute(call) for call in tool_calls]
+
+    # OBSERVE: append results as the next user message
+    messages.append({"role": "user", "content": results})
+```
+
+Module 3 wraps this loop around an LLM call inside a terminal REPL environment.
 
 > [!NOTE]
 > This loop is commonly known as the **ReAct loop** — after the 2022 paper [*ReAct: Synergizing Reasoning and Acting in Language Models*](https://arxiv.org/abs/2210.03629) by Yao et al. The ReAct acronym drops observation; TAO keeps it visible. (The paper itself includes observation — it's the acronym that's lossy.)
 
-## In practice
+## Show a tool
 
-The three ingredients are ordinary engineering pieces:
+A tool is a Python function plus a JSON schema describing its inputs. The schema tells the model how to call it.
 
-- **The LLM call** is an HTTP POST to the model provider's API, returning reasoning text and (optionally) a tool request in the same response
-- **The loop** is a `while True:` that exits when the model stops requesting tools
-- **Tools** are plain Python functions with a JSON schema (a `dict`) describing their inputs; your code runs them and appends the result to the conversation before calling the LLM again
+```python
+def add(a: int, b: int) -> str:
+    return str(a + b)
 
-The shape in code:
+tools = [
+    {
+        "name": "add",
+        "description": "Add two numbers",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "a": {"type": "number"},
+                "b": {"type": "number"},
+            },
+            "required": ["a", "b"],
+        },
+    }
+]
+```
+
+The tool returns a string — numbers, JSON, free text, whatever the model needs to read. Module 4 wires this into the loop so the model can request it.
+
+## Putting it together
+
+All three components assembled into a minimal agent:
 
 ```python
 import os
