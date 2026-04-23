@@ -123,8 +123,8 @@ The runtime shape is complete: a REPL that wraps a TAO loop. Prompts go in, resp
 
 ## What's missing
 
-- **No tools.** The model can only produce text. When it can't solve a problem from pure knowledge, it has no way to go look things up or do anything about it. Module 4 adds tools — and the system becomes a proper agent.
+- **No tools.** The model can only produce text. When it can't solve a problem from pure knowledge, it has no way to go look things up or do anything about it. Module 4 adds the first tool — and the system becomes a minimal agent.
 
 ---
 
-**Next:** Module 4: Tools *(coming soon)*
+**Next:** Module 4: First tool *(coming soon)*

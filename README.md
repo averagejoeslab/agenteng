@@ -7,7 +7,7 @@ A framework-free, code-first content series on **agentic engineering**.
 An agent is a system with exactly three ingredients:
 
 1. **An LLM call** — the reasoning engine
-2. **A TAO loop** (Think, Act, Observe) — the structure that turns single calls into sustained thought
+2. **A TAO loop** (Think, Act, Observe) — the structure that turns single calls into sustained work
 3. **Tools** — the ability to act
 
 Remove any one and it's something else. No LLM call: not intelligent. No loop: it's a **workflow**. No tools: it's a **chatbot**.
@@ -17,7 +17,7 @@ Remove any one and it's something else. No LLM call: not intelligent. No loop: i
 
 ## What you'll build
 
-You'll start by building a working coding agent in Python. Then you'll add everything real agents need: memory, well-designed tools, sandboxing, reliability, evaluation, observability, and production deployment.
+You'll start by building a minimal coding agent in Python. Then you'll grow it into a real-world system: well-designed tools, memory and context management, observability, evaluation, safety and guardrails, and cost/latency optimization.
 
 **No frameworks. Just primitives and the reasoning behind them.**
 
@@ -40,26 +40,26 @@ Define the three ingredients. Build them up one at a time. End with a working ag
 3. [The TAO loop](./agentic-engineering/modules/03-the-tao-loop/)
 4. Tools *(coming soon)*
 
-### Part 2 — Memory *(coming soon)*
-Session memory, persistent trace, context windows, semantic recall.
+### Part 2 — Tool Design *(coming soon)*
+Grow the minimal agent into a multi-tool system. A proper tool executor, granularity decisions, error messages as the self-correction channel, MCP.
 
-### Part 3 — Tools *(coming soon)*
-Tool design for agents: granularity, error messages as self-correction, MCP.
+### Part 3 — Memory and Context *(coming soon)*
+Persistent memory across sessions, context window as a budget, semantic recall, compaction and eviction.
 
-### Part 4 — Safety *(coming soon)*
-Sandboxing, capability scoping, prompt injection, loop bounds, human-in-the-loop.
+### Part 4 — Observability *(coming soon)*
+Structured traces of every LLM call, tool call, and state transition. Replay. Tooling landscape.
 
-### Part 5 — Reliability *(coming soon)*
-Stop conditions, self-correction, checkpointing.
+### Part 5 — Evaluation *(coming soon)*
+Task-completion suites, trajectory analysis, LLM-as-judge, regression testing for non-deterministic systems.
 
-### Part 6 — Evaluation *(coming soon)*
-Task success vs. trajectory quality, LLM-as-judge, regression suites.
+### Part 6 — Safety and Guardrails *(coming soon)*
+Identity and access management, sandboxing, input/output detection, human approval gates, loop bounds.
 
-### Part 7 — Observability *(coming soon)*
-Structured tracing, replay, the tooling landscape.
+### Part 7 — Cost and Latency *(coming soon)*
+Caching, batching, model routing, parallelization, compression.
 
-### Part 8 — Production *(coming soon)*
-Cost, latency, model routing, deployment, versioning.
+### Part 8 — Prompt and Context Tuning *(coming soon)*
+The system prompt as scaffolding. Iterative refinement of the full input assembly.
 
 ## License
 

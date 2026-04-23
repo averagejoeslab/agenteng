@@ -134,9 +134,9 @@ The next three modules add one piece at a time:
 |---|---|---|
 | 2 | LLM call | A one-shot script |
 | 3 | TAO loop + terminal environment | An interactive REPL running the loop |
-| 4 | Tools | **An agent** |
+| 4 | First tool | **A minimal agent** |
 
-By Module 4 you'll have a working coding agent in Python. Each module ends with something that runs.
+By Module 4 you'll have a minimal working coding agent in Python. Each module ends with something that runs.
 
 ## What you'll need
 
