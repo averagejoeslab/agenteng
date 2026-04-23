@@ -19,6 +19,9 @@ Run this from `agents/` — the `.env` and `.venv` are resolved relative to this
 
 ## Agents
 
-- **[basic-agent](./basic-agent/)** — minimal coding agent. Terminal REPL + TAO loop + one tool (`read`). Built across Part 1 of the content.
+Each agent is a snapshot of the agent the content builds at the end of a given Part.
 
-Future parts of the content will either evolve `basic-agent/` or add new sibling agents.
+- **[basic-agent](./basic-agent/)** — Part 1 end state. Minimal coding agent: REPL + TAO loop + one tool (`read`).
+- **[coding-agent](./coding-agent/)** — Part 2 end state. Multi-tool coding agent: same loop + registry-based dispatch + six tools (`read`, `write`, `edit`, `grep`, `glob`, `bash`).
+
+Future Parts will add more agent snapshots as siblings (or evolve an existing one).

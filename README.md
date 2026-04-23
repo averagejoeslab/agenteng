@@ -27,7 +27,8 @@ This repo is both the content *and* runnable references. Each Part of the conten
 
 Current agents:
 
-- **[`agents/basic-agent`](./agents/basic-agent/)** — minimal coding agent Part 1 produces. Terminal REPL + TAO loop + `read` tool.
+- **[`agents/basic-agent`](./agents/basic-agent/)** — Part 1 end state. Minimal coding agent: REPL + TAO loop + `read` tool.
+- **[`agents/coding-agent`](./agents/coding-agent/)** — Part 2 end state. Multi-tool coding agent: registry-based dispatch + six tools (`read`, `write`, `edit`, `grep`, `glob`, `bash`).
 
 Run it:
 
@@ -67,8 +68,13 @@ Define the three ingredients. Build them up one at a time. End with a working ag
 3. [The TAO loop](./agentic-engineering/part-01/modules/03-the-tao-loop/)
 4. [First tool](./agentic-engineering/part-01/modules/04-first-tool/)
 
-### Part 2 — Tool Design *(coming soon)*
+### Part 2 — Tool Design
 Grow the minimal agent into a multi-tool system. A proper tool executor, granularity decisions, error messages as the self-correction channel, MCP.
+
+5. [Tool design](./agentic-engineering/part-02/modules/05-tool-design/)
+6. [The tool registry](./agentic-engineering/part-02/modules/06-the-tool-registry/)
+7. [Building the toolkit](./agentic-engineering/part-02/modules/07-building-the-toolkit/)
+8. [MCP](./agentic-engineering/part-02/modules/08-mcp/)
 
 ### Part 3 — Memory and Context *(coming soon)*
 Persistent memory across sessions, context window as a budget, semantic recall, compaction and eviction.
