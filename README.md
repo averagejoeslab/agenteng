@@ -1,53 +1,16 @@
 # agenteng
 
-A framework-free, code-first content series on **agentic engineering**.
+A framework-free take on **agentic engineering**.
 
 ## What is an agent?
 
-An agent is a system with exactly three ingredients:
+An agent is a system with these three components:
 
-1. **An LLM call** — the reasoning engine
-2. **A TAO loop** (Think, Act, Observe) — the structure that turns single calls into sustained work
-3. **Tools** — the ability to act
+1. **An LLM** — the reasoning engine
+2. **A loop** (Think, Act, Observe) — a control flow that sustains the agent's work
+3. **Tools** — the capability to take actions in an environment
 
-Remove any one and it's something else. No LLM call: not intelligent. No loop: it's a **workflow**. No tools: it's a **chatbot**.
-
-> [!NOTE]
-> Most production systems called "agents" are workflows. Workflows are often the right choice. This content is about the other case — when a task genuinely requires the model to direct its own process, and you need to build it yourself.
-
-## What you'll build
-
-You'll start by building a minimal coding agent in Python. Then you'll grow it into a real-world system: well-designed tools, memory and context management, observability, evaluation, safety and guardrails, and cost/latency optimization.
-
-**No frameworks. Just primitives and the reasoning behind them.**
-
-## Reference agents
-
-This repo is both the content *and* runnable references. Each Part of the content produces a working agent; those agents live under [`agents/`](./agents/), sharing one venv and one `.env`.
-
-Current agents:
-
-- **[`agents/basic-agent`](./agents/basic-agent/)** — Part 1 end state. Minimal coding agent: REPL + TAO loop + `read` tool.
-- **[`agents/coding-agent`](./agents/coding-agent/)** — Part 2 end state. Multi-tool coding agent: registry-based dispatch + six tools (`read`, `write`, `edit`, `grep`, `glob`, `bash`).
-
-Run it:
-
-```bash
-cd agents
-cp .env.example .env           # paste your Anthropic API key
-uv sync                         # install deps into ./.venv
-uv run basic-agent/main.py      # start the REPL
-```
-
-Then at the `❯` prompt:
-
-```
-❯ What's in pyproject.toml?
-❯ Does main.py import python-dotenv?
-❯ /q
-```
-
-The model calls `read(path=...)` when it needs to examine a file.
+This repo contains the content for guiding you through being an agentic engineer and it also contains reference implementations of agents.
 
 ## Content
 
@@ -61,20 +24,24 @@ Read the orientation and set up your environment before starting Part 1.
 - An [Anthropic API key](https://console.anthropic.com)
 
 ### Part 1 — The Agent
-Define the three ingredients. Build them up one at a time. End with a working agent.
+Define what an agent is and the three components that make it up. Build them up one at a time. End with a working agent.
 
 1. [What is an agent?](./agentic-engineering/part-01/modules/01-what-is-an-agent/)
 2. [A single LLM call](./agentic-engineering/part-01/modules/02-a-single-llm-call/)
 3. [The TAO loop](./agentic-engineering/part-01/modules/03-the-tao-loop/)
 4. [First tool](./agentic-engineering/part-01/modules/04-first-tool/)
 
+**Reference implementation agent:** [`agents/basic-agent`](./agents/basic-agent/)
+
 ### Part 2 — Tool Design
-Grow the minimal agent into a multi-tool system: a tool registry, a six-tool toolkit, and a centralized executor that pulls error handling out of each tool.
+Understand proper agentic tool design and expand the basic agent by moving to a tool registry, building a proper toolkit, and centralizing error handling in a tool executor.
 
 5. [Tool design](./agentic-engineering/part-02/modules/05-tool-design/)
 6. [The tool registry](./agentic-engineering/part-02/modules/06-the-tool-registry/)
 7. [Building the toolkit](./agentic-engineering/part-02/modules/07-building-the-toolkit/)
 8. [The tool executor](./agentic-engineering/part-02/modules/08-the-tool-executor/)
+
+**Reference implementation agent:** [`agents/coding-agent`](./agents/coding-agent/)
 
 ### Part 3 — Memory and Context *(coming soon)*
 Persistent memory across sessions, context window as a budget, semantic recall, compaction and eviction.
