@@ -1,18 +1,18 @@
 # The tool registry
 
-Module 4's agent has an `if call.name == "read"` dispatch. It worked for one tool. It won't scale:
+Module 4's agent has an `if call.name == "read"` dispatch inside an ad-hoc `dispatch(call)` function. It worked for one tool. It won't scale:
 
 ```python
 # This doesn't scale:
-if call.name == "read":
-    output = read(**call.input)
-elif call.name == "write":
-    output = write(**call.input)
-elif call.name == "grep":
-    output = grep(**call.input)
-# ...
-else:
-    output = f"error: unknown tool {call.name}"
+async def dispatch(call):
+    if call.name == "read":
+        return await read(**call.input)
+    elif call.name == "write":
+        return await write(**call.input)
+    elif call.name == "grep":
+        return await grep(**call.input)
+    # ...
+    return f"error: unknown tool {call.name}"
 ```
 
 Every new tool adds an `elif` branch AND a separate schema dict at the top of the file. Two places to keep in sync — easy to forget one.
@@ -36,7 +36,7 @@ TOOLS = {
 
 Three fields per tool — matching the components from [Module 5](../05-tool-design/):
 
-- `fn` — the function that does the work
+- `fn` — the async function that does the work
 - `description` — what the model reads to pick the tool
 - `params` — the parameter names (all strings for now)
 
@@ -69,20 +69,20 @@ Call this once at startup and pass the result to `client.messages.create(tools=.
 
 ## Dispatching by name
 
-A small function looks up a tool in the registry and calls it:
+A small async function looks up a tool in the registry and awaits it:
 
 ```python
-def execute_tool(name: str, input: dict) -> str:
+async def execute_tool(name: str, input: dict) -> str:
     tool = TOOLS.get(name)
     if tool is None:
         return f"error: unknown tool {name}"
-    return tool["fn"](**input)
+    return await tool["fn"](**input)
 ```
 
 Two things this does:
 
 - Handles unknown tool names (returns an error string).
-- Unpacks `input` as kwargs and calls the tool's function.
+- Unpacks `input` as kwargs and awaits the tool's function.
 
 What it *doesn't* do: catch exceptions from the tool itself. Each tool handles its own errors with `try/except` (as `read` already does from Module 4). Module 8 will centralize that — the executor becomes the single place that wraps every call.
 
@@ -92,18 +92,18 @@ Here's the full refactored agent — still just `read` (toolkit arrives in Modul
 
 ```python
 import os
-from anthropic import Anthropic
+import asyncio
+from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-messages = []
+client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 
 # --- Tools ---
 
-def read(path: str) -> str:
+async def read(path: str) -> str:
     try:
         with open(path, "r") as f:
             return f.read()
@@ -136,11 +136,11 @@ def build_tool_schemas(tools):
     return schemas
 
 
-def execute_tool(name: str, input: dict) -> str:
+async def execute_tool(name: str, input: dict) -> str:
     tool = TOOLS.get(name)
     if tool is None:
         return f"error: unknown tool {name}"
-    return tool["fn"](**input)
+    return await tool["fn"](**input)
 
 
 TOOL_SCHEMAS = build_tool_schemas(TOOLS)
@@ -148,47 +148,54 @@ TOOL_SCHEMAS = build_tool_schemas(TOOLS)
 
 # --- The loop ---
 
-while True:
-    user_input = input("❯ ")
-    if user_input.lower() in ("/q", "exit"):
-        break
-
-    messages.append({"role": "user", "content": user_input})
+async def main():
+    messages = []
 
     while True:
-        response = client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=1024,
-            system="You are a helpful coding assistant.",
-            messages=messages,
-            tools=TOOL_SCHEMAS,
-        )
-        messages.append({"role": "assistant", "content": response.content})
-
-        for block in response.content:
-            if block.type == "text":
-                print(block.text)
-
-        tool_calls = [b for b in response.content if b.type == "tool_use"]
-        if not tool_calls:
+        user_input = input("❯ ")
+        if user_input.lower() in ("/q", "exit"):
             break
 
-        results = []
-        for call in tool_calls:
-            output = execute_tool(call.name, call.input)
-            results.append({
-                "type": "tool_result",
-                "tool_use_id": call.id,
-                "content": output,
+        messages.append({"role": "user", "content": user_input})
+
+        while True:
+            response = await client.messages.create(
+                model="claude-sonnet-4-5",
+                max_tokens=1024,
+                system="You are a helpful coding assistant.",
+                messages=messages,
+                tools=TOOL_SCHEMAS,
+            )
+            messages.append({"role": "assistant", "content": response.content})
+
+            for block in response.content:
+                if block.type == "text":
+                    print(block.text)
+
+            tool_calls = [b for b in response.content if b.type == "tool_use"]
+            if not tool_calls:
+                break
+
+            outputs = await asyncio.gather(
+                *(execute_tool(c.name, c.input) for c in tool_calls)
+            )
+
+            messages.append({
+                "role": "user",
+                "content": [
+                    {"type": "tool_result", "tool_use_id": c.id, "content": o}
+                    for c, o in zip(tool_calls, outputs)
+                ],
             })
 
-        messages.append({"role": "user", "content": results})
+
+asyncio.run(main())
 ```
 
 Three changes from Module 4:
 
 1. The hand-written `tools` list literal is gone. Replaced by the `TOOLS` dict + `build_tool_schemas()`.
-2. The `if call.name == "read"` dispatch is gone. Replaced by `execute_tool(call.name, call.input)`.
+2. The inline `dispatch(call)` function with its `if call.name == "read"` branch is gone. Replaced by `execute_tool(call.name, call.input)` — same role, but driven by the registry instead of hand-written branches.
 3. `tools=TOOL_SCHEMAS` in the API call (computed once at startup).
 
 Error handling still lives in `read` itself — unchanged from Module 4. That stays that way through Module 7.
@@ -208,10 +215,10 @@ If you want your coding agent to write this for you, paste:
 ```
 Refactor main.py from the previous module to use a tool registry pattern:
 
-1. Define a TOOLS dict mapping tool name to {fn, description, params}. For now it has one entry for "read" with params=["path"].
+1. Define a TOOLS dict mapping tool name to {fn, description, params}. For now it has one entry for "read" with params=["path"]. The fn is an async function.
 2. Write build_tool_schemas(TOOLS) that generates the JSON Schema list the Anthropic API expects. All parameters are string type; all are required.
-3. Write execute_tool(name, input) that looks up the tool and calls its fn with unpacked input. If the name isn't in TOOLS, return an error string. Do NOT wrap the call in try/except — the tool handles its own errors for now.
-4. Replace the ad-hoc if/elif dispatch in the TAO loop with a call to execute_tool.
+3. Write `async def execute_tool(name, input)` that looks up the tool and awaits its fn with unpacked input. If the name isn't in TOOLS, return an error string. Do NOT wrap the call in try/except — the tool handles its own errors for now.
+4. Replace the ad-hoc dispatch function in the TAO loop with a call to execute_tool, still using asyncio.gather for parallel dispatch.
 5. Compute TOOL_SCHEMAS = build_tool_schemas(TOOLS) once at startup and pass it as the tools parameter to messages.create.
 ```
 

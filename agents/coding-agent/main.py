@@ -1,30 +1,30 @@
 import os
 import re
+import asyncio
 import subprocess
 import glob as _glob
-from anthropic import Anthropic
+from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-messages = []
+client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 
 # --- Tools ---
 
-def read(path: str) -> str:
+async def read(path: str) -> str:
     with open(path, "r") as f:
         return f.read()
 
 
-def write(path: str, content: str) -> str:
+async def write(path: str, content: str) -> str:
     with open(path, "w") as f:
         f.write(content)
     return f"wrote {len(content)} chars to {path}"
 
 
-def edit(path: str, old: str, new: str) -> str:
+async def edit(path: str, old: str, new: str) -> str:
     with open(path, "r") as f:
         content = f.read()
     if old not in content:
@@ -37,7 +37,7 @@ def edit(path: str, old: str, new: str) -> str:
     return "ok"
 
 
-def grep(pattern: str, path: str) -> str:
+async def grep(pattern: str, path: str) -> str:
     regex = re.compile(pattern)
     hits = []
     for root, _, files in os.walk(path):
@@ -55,12 +55,12 @@ def grep(pattern: str, path: str) -> str:
     return "\n".join(hits[:100]) or "no matches"
 
 
-def glob(pattern: str) -> str:
+async def glob(pattern: str) -> str:
     matches = sorted(_glob.glob(pattern, recursive=True))
     return "\n".join(matches) or "no matches"
 
 
-def bash(cmd: str) -> str:
+async def bash(cmd: str) -> str:
     try:
         result = subprocess.run(
             cmd, shell=True, capture_output=True, text=True, timeout=30,
@@ -105,12 +105,12 @@ def build_tool_schemas(tools):
     return schemas
 
 
-def execute_tool(name: str, input: dict) -> str:
+async def execute_tool(name: str, input: dict) -> str:
     tool = TOOLS.get(name)
     if tool is None:
         return f"error: unknown tool {name}"
     try:
-        result = tool["fn"](**input)
+        result = await tool["fn"](**input)
         return result if isinstance(result, str) else str(result)
     except Exception as e:
         return f"error: {e}"
@@ -121,38 +121,45 @@ TOOL_SCHEMAS = build_tool_schemas(TOOLS)
 
 # --- Loop ---
 
-while True:
-    user_input = input("❯ ")
-    if user_input.lower() in ("/q", "exit"):
-        break
-
-    messages.append({"role": "user", "content": user_input})
+async def main():
+    messages = []
 
     while True:
-        response = client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=1024,
-            system="You are a helpful coding assistant.",
-            messages=messages,
-            tools=TOOL_SCHEMAS,
-        )
-        messages.append({"role": "assistant", "content": response.content})
-
-        for block in response.content:
-            if block.type == "text":
-                print(block.text)
-
-        tool_calls = [b for b in response.content if b.type == "tool_use"]
-        if not tool_calls:
+        user_input = input("❯ ")
+        if user_input.lower() in ("/q", "exit"):
             break
 
-        results = []
-        for call in tool_calls:
-            output = execute_tool(call.name, call.input)
-            results.append({
-                "type": "tool_result",
-                "tool_use_id": call.id,
-                "content": output,
+        messages.append({"role": "user", "content": user_input})
+
+        while True:
+            response = await client.messages.create(
+                model="claude-sonnet-4-5",
+                max_tokens=1024,
+                system="You are a helpful coding assistant.",
+                messages=messages,
+                tools=TOOL_SCHEMAS,
+            )
+            messages.append({"role": "assistant", "content": response.content})
+
+            for block in response.content:
+                if block.type == "text":
+                    print(block.text)
+
+            tool_calls = [b for b in response.content if b.type == "tool_use"]
+            if not tool_calls:
+                break
+
+            outputs = await asyncio.gather(
+                *(execute_tool(c.name, c.input) for c in tool_calls)
+            )
+
+            messages.append({
+                "role": "user",
+                "content": [
+                    {"type": "tool_result", "tool_use_id": c.id, "content": o}
+                    for c, o in zip(tool_calls, outputs)
+                ],
             })
 
-        messages.append({"role": "user", "content": results})
+
+asyncio.run(main())

@@ -2,14 +2,14 @@
 
 This module adds five tools to the registry from Module 6: `write`, `edit`, `grep`, `glob`, `bash`. Together with `read`, they're enough for the model to function as a real coding agent — examine files, make changes, find things, run commands.
 
-Each tool follows Module 5's principles: focused responsibility, errors as strings, clear name and description.
+Each tool follows Module 5's principles: focused responsibility, errors as strings, clear name and description. All tools are `async def` so the executor can dispatch them in parallel with `asyncio.gather`. The bodies are otherwise ordinary synchronous Python — async is about *how they're scheduled*, not about the work inside.
 
 ## write
 
 Create or overwrite a file.
 
 ```python
-def write(path: str, content: str) -> str:
+async def write(path: str, content: str) -> str:
     try:
         with open(path, "w") as f:
             f.write(content)
@@ -29,7 +29,7 @@ Design notes:
 Find-and-replace in a file.
 
 ```python
-def edit(path: str, old: str, new: str) -> str:
+async def edit(path: str, old: str, new: str) -> str:
     try:
         with open(path, "r") as f:
             content = f.read()
@@ -58,7 +58,7 @@ Search file contents for a regex across a directory tree.
 ```python
 import re
 
-def grep(pattern: str, path: str) -> str:
+async def grep(pattern: str, path: str) -> str:
     try:
         regex = re.compile(pattern)
     except re.error as e:
@@ -96,7 +96,7 @@ Find files matching a shell-style pattern.
 ```python
 import glob as _glob   # shadowed by our tool name below
 
-def glob(pattern: str) -> str:
+async def glob(pattern: str) -> str:
     try:
         matches = sorted(_glob.glob(pattern, recursive=True))
         return "\n".join(matches) or "no matches"
@@ -117,7 +117,7 @@ Run a shell command.
 ```python
 import subprocess
 
-def bash(cmd: str) -> str:
+async def bash(cmd: str) -> str:
     try:
         result = subprocess.run(
             cmd, shell=True, capture_output=True, text=True, timeout=30,
@@ -135,6 +135,7 @@ Design notes:
 - Captures both stdout and stderr — error output matters.
 - 30-second timeout prevents infinite hangs.
 - Runs on the host, no sandbox.
+- `subprocess.run` is blocking, so running two `bash` calls "in parallel" via `asyncio.gather` actually runs them serially from the event loop's view. That's a known cost of keeping tool bodies sync; a more thorough fix uses `asyncio.to_thread` and lands in Part 7 (Cost/Latency). For now, sequential-but-correct is fine.
 
 > [!WARNING]
 > `bash` runs arbitrary commands on your machine with your permissions. In real agents you'd sandbox this (Docker, firejail, seccomp). For this curriculum — running locally in a project you control — it's fine. Part 6 (Safety and Guardrails) covers sandboxing properly.
@@ -167,9 +168,10 @@ Make sure the imports at the top of `main.py` cover everything the tools need:
 ```python
 import os
 import re
+import asyncio
 import subprocess
 import glob as _glob
-from anthropic import Anthropic
+from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 ```
 
@@ -189,21 +191,21 @@ You have two: agents/basic-agent/main.py and agents/coding-agent/main.py.
 
 ❯ Does either import the anthropic package?
 [grep for the import]
-Yes — both files have `from anthropic import Anthropic`.
+Yes — both files have `from anthropic import AsyncAnthropic`.
 
 ❯ /q
 ```
 
 (Exact phrasing varies — models are non-deterministic.)
 
-The TAO loop iterates multiple times per turn: the model chains tools (`glob` → `grep`, `read` → `edit`) to answer multi-step questions.
+The TAO loop iterates multiple times per turn: the model chains tools (`glob` → `grep`, `read` → `edit`) to answer multi-step questions. And when the model emits several tool calls in one response, `asyncio.gather` runs them concurrently.
 
 ## The repetition problem
 
 Look at the six tools you just wrote. Every one of them has this pattern:
 
 ```python
-def tool(...):
+async def tool(...):
     try:
         # do the actual work
         ...
@@ -233,10 +235,11 @@ If you want your coding agent to write this for you, paste:
 ```
 Add five tools to main.py's TOOLS registry: write, edit, grep, glob, bash.
 
-For each tool, define a Python function that:
+For each tool, define an `async def` function that:
 - Takes the parameters documented below
 - Returns a string (including errors as strings — never raise)
 - Catches exceptions with try/except and returns them as "error: <message>"
+- Is `async def` even if the body is sync, so the executor can await it
 
 Tool specs:
 - write(path, content): create or overwrite the file, return "wrote N chars to <path>"

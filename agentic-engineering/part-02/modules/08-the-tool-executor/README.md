@@ -1,13 +1,13 @@
 # The tool executor
 
-Six tools from Module 7. Same `try/except Exception as e: return f"error: {e}"` in every one. This module pulls that pattern out of the tools and into the executor — one central place that wraps every tool call. Tools become thin. The executor becomes the **base tool contract**: the single definition of what happens when any tool runs.
+Six tools from Module 7. Same `try/except Exception as e: return f"error: {e}"` in every one. This module pulls that pattern out of the tools and into the executor — the one central place that wraps every tool call. Tools become thin. The executor becomes the **base tool contract**: the single definition of what happens when any tool runs.
 
 ## The pattern shift
 
 **Before (Module 7).** Every tool handles its own errors:
 
 ```python
-def read(path: str) -> str:
+async def read(path: str) -> str:
     try:
         with open(path, "r") as f:
             return f.read()
@@ -18,7 +18,7 @@ def read(path: str) -> str:
 **After (this module).** The tool stays pure; the executor catches:
 
 ```python
-def read(path: str) -> str:
+async def read(path: str) -> str:
     with open(path, "r") as f:
         return f.read()
 ```
@@ -33,12 +33,12 @@ Upgrade `execute_tool` from Module 6. It gains two responsibilities:
 2. **Stringify the result** — if a tool returns something non-string (e.g., a path list, a count), convert it before sending to the API.
 
 ```python
-def execute_tool(name: str, input: dict) -> str:
+async def execute_tool(name: str, input: dict) -> str:
     tool = TOOLS.get(name)
     if tool is None:
         return f"error: unknown tool {name}"
     try:
-        result = tool["fn"](**input)
+        result = await tool["fn"](**input)
         return result if isinstance(result, str) else str(result)
     except Exception as e:
         return f"error: {e}"
@@ -50,11 +50,14 @@ Three things this does:
 - **Exceptions** — any tool that raises gets caught; the error becomes a string the model can read.
 - **Non-string returns** — future tools that return structured data get stringified automatically.
 
+The parallel-dispatch `asyncio.gather(*(execute_tool(...) for c in tool_calls))` at the call site is unchanged from Module 4 — gather works through the upgraded executor the same way.
+
 ## The base tool contract
 
 With the executor doing this work, every tool in the registry now has the same shape:
 
 - Takes kwargs matching its `params`
+- Is awaitable (an `async def` function)
 - Returns a value the executor will stringify (or raises — the executor catches)
 - Doesn't need its own try/except
 
@@ -63,14 +66,14 @@ That's the **base tool contract**: the invariant every tool satisfies. The execu
 Think of it like a function signature for the *whole category* of tools:
 
 ```
-(**kwargs) -> str | Any   (raise allowed, executor handles)
+async (**kwargs) -> str | Any   (raise allowed, executor handles)
 ```
 
 Moving a responsibility from six places into one is the core refactor. But the pattern matters beyond cleanup:
 
 - **Add observability** (Part 4): instrument one function, not six.
 - **Add approval gates** (Part 6): check permissions in one place before any tool runs.
-- **Add timing / cost** (Part 7): wrap execution with timers once.
+- **Add timing / cost** (Part 7): wrap execution with timers once. Part 7 also replaces the sync tool bodies with `asyncio.to_thread` wrappers here, so `asyncio.gather` delivers real parallelism for blocking tools like `bash`.
 
 The executor is where cross-cutting concerns live. Once the base contract exists, each new concern is a one-line addition.
 
@@ -79,18 +82,18 @@ The executor is where cross-cutting concerns live. Once the base contract exists
 Strip the try/except from each tool. The tool keeps only its happy-path logic (plus domain-specific guards like the edit tool's "must match exactly once" check — that's business logic, not error handling):
 
 ```python
-def read(path: str) -> str:
+async def read(path: str) -> str:
     with open(path, "r") as f:
         return f.read()
 
 
-def write(path: str, content: str) -> str:
+async def write(path: str, content: str) -> str:
     with open(path, "w") as f:
         f.write(content)
     return f"wrote {len(content)} chars to {path}"
 
 
-def edit(path: str, old: str, new: str) -> str:
+async def edit(path: str, old: str, new: str) -> str:
     with open(path, "r") as f:
         content = f.read()
     if old not in content:
@@ -103,7 +106,7 @@ def edit(path: str, old: str, new: str) -> str:
     return "ok"
 
 
-def grep(pattern: str, path: str) -> str:
+async def grep(pattern: str, path: str) -> str:
     regex = re.compile(pattern)   # re.error propagates; executor catches
     hits = []
     for root, _, files in os.walk(path):
@@ -121,12 +124,12 @@ def grep(pattern: str, path: str) -> str:
     return "\n".join(hits[:100]) or "no matches"
 
 
-def glob(pattern: str) -> str:
+async def glob(pattern: str) -> str:
     matches = sorted(_glob.glob(pattern, recursive=True))
     return "\n".join(matches) or "no matches"
 
 
-def bash(cmd: str) -> str:
+async def bash(cmd: str) -> str:
     try:
         result = subprocess.run(
             cmd, shell=True, capture_output=True, text=True, timeout=30,
@@ -147,7 +150,7 @@ Notes on what stayed:
 
 ## The full file
 
-The end state of Part 2 lives at [`agents/coding-agent/main.py`](../../../../agents/coding-agent/main.py). Thin tools, centralized executor.
+The end state of Part 2 lives at [`agents/coding-agent/main.py`](../../../../agents/coding-agent/main.py). Thin tools, centralized executor, parallel dispatch.
 
 ## Running it
 
@@ -161,11 +164,12 @@ Same behavior as Module 7 end state. Same prompts work. What changed is internal
 
 ## What you have now
 
-A coding agent with six tools and a clean executor:
+A coding agent with six tools and a clean async executor:
 
 - Registry stores each tool's function, description, and parameters.
 - Factory generates API-shaped schemas from the registry.
-- Executor runs any tool, catches any exception, stringifies the result.
+- Executor awaits any tool, catches any exception, stringifies the result.
+- `asyncio.gather` dispatches every requested tool in a single turn concurrently.
 - Each tool focuses on its happy path (plus its own domain logic).
 
 This is the end state of Part 2 — lives at `agents/coding-agent/`.
@@ -182,7 +186,7 @@ The executor pattern stays. Each later Part adds responsibilities to it:
 
 - Part 4 (Observability): trace every tool call through the executor.
 - Part 6 (Safety): gate tool execution on permissions.
-- Part 7 (Cost/Latency): time and cache executions.
+- Part 7 (Cost/Latency): wrap tool bodies in `asyncio.to_thread` so blocking calls (`bash`, large file I/O) don't stall the event loop — and `asyncio.gather` gives real parallelism.
 
 ## Prompt your coding agent
 
@@ -191,9 +195,9 @@ If you want your coding agent to write this for you, paste:
 ```
 Refactor main.py so error handling lives in the executor, not in each tool.
 
-1. Update execute_tool(name, input) to:
+1. Update `async def execute_tool(name, input)` to:
    - Return "error: unknown tool {name}" if the name isn't in TOOLS
-   - Try to call tool["fn"](**input)
+   - Try to `await tool["fn"](**input)`
    - Stringify the result if it isn't already a string
    - Catch any Exception and return "error: {e}"
 
@@ -202,7 +206,7 @@ Refactor main.py so error handling lives in the executor, not in each tool.
    - grep: keep the inner except that silently skips unreadable files
    - bash: keep the TimeoutExpired catch that returns a specific timeout message
 
-3. Do not change build_tool_schemas or the TAO loop.
+3. Do not change build_tool_schemas, the TAO loop, or the asyncio.gather dispatch.
 ```
 
 The prompt tells your agent *what* to write. The module explains *why* — read it first.
