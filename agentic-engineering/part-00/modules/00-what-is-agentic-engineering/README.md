@@ -5,37 +5,26 @@
 Working in this discipline involves the following items:
 
 - **Building the control flow** — the control flow determines the path the system takes
-- **Designing tools** — what capabilities the system has, at what granularity, with what error semantics. See [Model Context Protocol](https://modelcontextprotocol.io) for one standardization effort.
+- **Designing tools** — what capabilities the system has, at what granularity, with what error semantics.
 - **Architecting memory** — what's remembered, when it's remembered, and how it's retrieved
-- **Managing context** — the context window is a budget of tokens; determine how it is managed by what goes in and what gets evicted.
-- **Setting up observability** — structured traces of every LLM call, tool call, and state transition in the control flow.
-- **Building evaluations** — task-completion suites, trajectory analysis, regression testing for non-deterministic systems
-- **Handling safety/guardrails** — identity and access management, sandboxing, input/output detection systems, human approval gates
-- **Managing cost and latency** — caching, batching, model routing, parallelization, compression, etc.
-- **Tuning prompts and context** — the system prompt is scaffolding inside the larger system
-
-> [!NOTE]
-> These fall into three buckets: **foundations** (control flow, tools, memory, context), **observability and trust** (tracing, evaluation, safety), and **production economics** (cost, latency, prompts).
+- **Managing context** — the context window is a budget of tokens; determine what goes into context and what gets evicted.
+- **Setting up observability** — structured traces of every LLM call, tool call, and state transition to help with debugging and monitoring.
+- **Building evaluations** — to benchmark the system's performance and ensure it is meeting the desired goals.
+- **Handling safety/guardrails** — identity and access management, sandboxing, input/output detection, human approval gates, etc.
+- **Managing cost and latency** — optimize costs and latency by caching, batching, model routing, parallelization, compression, etc.
+- **Tuning prompts and context** — behavioral optimization via tuning the system prompt and context management.
 
 ## What are agentic systems?
 
-**An agentic system coordinates more than one LLM call to accomplish a goal.** The term comes from Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents), where it serves as an umbrella covering both workflows and agents. A control flow determines the sequence of calls; each step's output feeds into the next.
-
-```mermaid
-flowchart LR
-    A1[Prompt] --> A2[LLM]
-    A2 --> A3[Tool / LLM]
-    A3 --> A4[LLM]
-    A4 --> A5[Output]
-```
+An agentic system is a program that coordinates LLM calls to accomplish a goal. The term **agentic system** from Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents), is an umbrella term that covers both workflows and agents.
 
 ## Types of agentic systems
 
 Agentic systems come in two forms, as defined in Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents):
 
-**Workflows** — systems where LLMs and tools are orchestrated through **predefined code paths**. Your code decides the sequence of steps.
+**Workflows** — systems where LLMs and tools are orchestrated through **predefined code paths**. Your code decides the sequence of steps and the model follows.
 
-**Agents** — systems where **LLMs dynamically direct their own processes and tool usage**. The model decides the sequence.
+**Agents** — systems where **LLMs dynamically direct their own path through the control flow**. The model decides the sequence.
 
 ```mermaid
 flowchart LR
@@ -55,24 +44,14 @@ Both are legitimate agentic systems. This content subscribes to Anthropic's taxo
 
 ### Common workflow patterns
 
-| Pattern | Control flow | Example |
-|---|---|---|
-| **Prompt chaining** | LLM → LLM → LLM, fixed order | outline → draft → polish |
-| **Routing** | Classify input → dispatch to one of N handlers | support tickets routed to billing / technical / refunds |
-| **Parallelization** | Run N LLM calls in parallel → aggregate | N perspectives on one question |
-| **Orchestrator-workers** | One LLM splits work → workers handle sub-tasks | research report with multiple sections |
-| **Evaluator-optimizer** | Generator → Evaluator → loop until good | draft with a quality-gate loop |
-
-#### Control flow of each pattern
-
-**Prompt chaining**
+**Prompt chaining** — LLM → LLM → LLM, fixed order. Example: outline → draft → polish.
 
 ```mermaid
 flowchart LR
     In[Input] --> A[LLM 1] --> B[LLM 2] --> C[LLM 3] --> Out[Output]
 ```
 
-**Routing**
+**Routing** — Classify input → dispatch to one of N handlers. Example: support tickets routed to billing / technical / refunds.
 
 ```mermaid
 flowchart LR
@@ -82,7 +61,7 @@ flowchart LR
     R --> H3[Handler C]
 ```
 
-**Parallelization**
+**Parallelization** — Run N LLM calls in parallel → aggregate. Example: N perspectives on one question.
 
 ```mermaid
 flowchart LR
@@ -94,7 +73,7 @@ flowchart LR
     C --> Agg
 ```
 
-**Orchestrator-workers**
+**Orchestrator-workers** — One LLM splits work → workers handle sub-tasks. Example: research report with multiple sections.
 
 ```mermaid
 flowchart LR
@@ -107,7 +86,7 @@ flowchart LR
     W3 --> S
 ```
 
-**Evaluator-optimizer**
+**Evaluator-optimizer** — Generator → Evaluator → loop until good. Example: draft with a quality-gate loop.
 
 ```mermaid
 flowchart LR

@@ -17,14 +17,14 @@ This repo contains the content for guiding you through being an agentic engineer
 ### Part 0 — Prereqs
 Read the orientation and set up your environment before starting Part 1.
 
-- [Module 0: What is agentic engineering?](./agentic-engineering/part-00/modules/00-what-is-agentic-engineering/) — the discipline, the landscape, what agentic engineers do
-- Comfort reading Python
+- [Module 0: What is agentic engineering?](./agentic-engineering/part-00/modules/00-what-is-agentic-engineering/) — the discipline of building agentic systems, what agentic engineers do, and what agentic systems are
+- Assumed programming experience (I will use Python as the example language)
 - [Python 3.13 or newer](https://www.python.org/downloads/)
 - [uv](https://docs.astral.sh/uv/) for dependency management
-- An [Anthropic API key](https://console.anthropic.com)
+- An [Anthropic API key](https://console.anthropic.com) (or other model provider API key)
 
 ### Part 1 — The Agent
-Define what an agent is and the three components that make it up. Build them up one at a time. End with a working agent.
+Define what an agent is and the three components that make it up. Build them up one at a time.
 
 1. [What is an agent?](./agentic-engineering/part-01/modules/01-what-is-an-agent/)
 2. [A single LLM call](./agentic-engineering/part-01/modules/02-a-single-llm-call/)
