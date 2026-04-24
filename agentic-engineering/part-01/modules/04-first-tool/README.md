@@ -220,7 +220,7 @@ The dashed boxes in Module 3's diagram are now solid.
 - **The agent can now see its environment.** The filesystem was always there; now the model has a way to look at it.
 - **Parallel tool calls are free.** If the model asks for two reads at once, both run concurrently.
 
-By the [Anthropic definition](https://www.anthropic.com/engineering/building-effective-agents) from Module 0, this is an agent. Not a chatbot (has tools), not a workflow (the model directs the sequence).
+By the [Anthropic definition](https://www.anthropic.com/engineering/building-effective-agents), this is an agent. Not a chatbot (has tools), not a workflow (the model directs the sequence).
 
 ## What's next
 
