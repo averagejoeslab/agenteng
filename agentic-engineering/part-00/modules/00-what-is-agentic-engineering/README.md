@@ -102,17 +102,17 @@ We believe in the [Anthropic model](https://www.anthropic.com/engineering/buildi
 
 **A workflow is an LLM on rails it can't get off of.** Your code lays the track; the model fills in text at each stop.
 
-From Module 1 on, this content is purist: only systems with autonomous control flow count as agents. Workflows are outside the scope of what follows.
+From Module 1 on, this content sticks to that strict definition: only systems with autonomous control flow count as agents. Workflows are outside the scope of what follows.
 
 ```mermaid
 flowchart LR
-    A[Agent<br/>model decides] -->|codify control flow| W[Workflow<br/>code decides]
+    A[Agent<br/>model decides] -->|freeze the path| W[Workflow<br/>code decides]
     W -.cannot derive.-> A
 ```
 
-The pieces are the same — LLM calls, tools, context, memory — but *who decides the next step* shifts from the model (agent) to your code (workflow). Understanding agents → understanding workflows; the reverse doesn't hold.
+The primitives are the same — LLM calls, tools, context, memory. An agent's control flow is the model making those choices live; a workflow's control flow is you making them in advance. The building blocks transfer; how you orchestrate them into a fixed sequence is its own discipline.
 
-For most production systems a workflow is more reliable, cheaper, and easier to evaluate — build a workflow if you can. But the interesting engineering problems — designing tools the model will use well, managing an open-ended context, making a non-deterministic loop reliable, evaluating a trajectory you can't enumerate — are agent problems. If you want a workflow, you already have the ingredients.
+For most production systems a workflow is more reliable, cheaper, and easier to evaluate — build a workflow if you can. But the interesting engineering problems — designing tools the model will use well, managing an open-ended context, making a non-deterministic loop reliable, evaluating a trajectory you can't enumerate — are agent problems. If you want a workflow, compose the primitives from this content into the sequence your problem needs.
 
 ## What agents look like
 
