@@ -28,23 +28,21 @@ Agentic systems come in two forms, as defined in Anthropic's [*Building Effectiv
 
 **Workflows** — systems where LLMs and tools are orchestrated through **predefined code paths**. Your code decides the sequence of steps and the model follows.
 
+```mermaid
+flowchart LR
+    W1[LLM] --> W2[LLM] --> W3[LLM]
+```
+
 **Agents** — systems where **LLMs dynamically direct their own path through the control flow**. The model decides the sequence.
 
 ```mermaid
 flowchart LR
-    subgraph Workflow["Workflow — your code decides"]
-        direction LR
-        W1[LLM] --> W2[LLM] --> W3[LLM]
-    end
-    subgraph Agent["Agent — the model decides"]
-        direction TB
-        A1[LLM] --> A2{Tool?}
-        A2 -->|yes| A3[Execute] --> A1
-        A2 -->|no| A4[Done]
-    end
+    A1[LLM] --> A2{Tool?}
+    A2 -->|yes| A3[Execute] --> A1
+    A2 -->|no| A4[Done]
 ```
 
-Both are legitimate agentic systems. This content subscribes to Anthropic's taxonomy. The sections below zoom in on each — common workflow patterns first, then common agent patterns.
+We subscribe to Anthropic's line of thinking and taxonomy on agentic systems. The sections below zoom in on each — common workflow patterns first, then common agent patterns.
 
 ### Common workflow patterns
 
@@ -102,9 +100,9 @@ flowchart LR
 
 ### Common agent patterns
 
-Workflows are a catalog of orchestration shapes. Agents are closer to **one pattern** — an autonomous loop — with a few common extensions. What varies between agents is the environment, the toolkit, and whether one agent spawns others.
+Workflows are a catalog of orchestration shapes. Agents are **one pattern** — an autonomous loop — and that's the whole list. What varies between agents in practice is the environment, the toolkit, and whether one of the tools happens to be another agent (see [composition patterns](#composition-patterns) below).
 
-**Autonomous agent** — an LLM in a loop with tools, choosing what to do next based on what it observes. This is the base pattern and what this repo builds.
+**Autonomous agent** — an LLM in a loop with tools, choosing what to do next based on what it observes. This is the pattern this repo builds.
 
 ```mermaid
 flowchart LR
@@ -115,22 +113,36 @@ flowchart LR
     Q -->|no| Done[Done]
 ```
 
-**Orchestrator with sub-agents** — one agent delegates specialized sub-tasks to other agents, then synthesizes their results. Each sub-agent is itself an autonomous loop. Common in research agents (top-level agent dispatches independent probes) and coding agents (main agent spawns focused sub-agents for specific changes).
+## Composition patterns
+
+Real production systems rarely run a pure workflow or a pure agent — they compose them. Two common compositions:
+
+**Workflow with an agent step** — most of the control flow is predetermined, but one stage needs open-ended decision-making, so you embed an agent there. Common when the bulk of a task is structured but a specific sub-task is inherently exploratory.
 
 ```mermaid
 flowchart LR
-    Task[User task] --> O[Orchestrator agent]
-    O --> S1[Sub-agent 1]
-    O --> S2[Sub-agent 2]
-    O --> S3[Sub-agent 3]
-    S1 --> Syn[Synthesize]
-    S2 --> Syn
-    S3 --> Syn
-    Syn --> O
-    O --> Done[Done]
+    In[Input] --> S1[LLM step 1]
+    S1 --> Ag[Agent step<br/>autonomous loop]
+    Ag --> S3[LLM step 3]
+    S3 --> Out[Output]
 ```
 
-The distinction from the workflow orchestrator-workers pattern: the orchestrator *and* the workers are agents here — each runs its own autonomous loop, and the orchestrator dynamically decides which sub-agents to spawn, when to synthesize, and whether to keep going. In the workflow version your code decides those things in advance.
+**Agent with a sub-agent as a tool** — the parent is an autonomous loop; one of its tools happens to spawn a sub-agent that is itself an autonomous loop. From the parent's perspective it's a tool call that returns a result. Common in research agents (parent dispatches focused sub-searches) and coding agents (parent spawns specialized sub-agents for particular files or tasks).
+
+```mermaid
+flowchart LR
+    Task[User task] --> A[Parent agent]
+    A --> T1[Regular tool]
+    A --> Sub[Sub-agent<br/>autonomous loop]
+    T1 --> A
+    Sub --> A
+    A --> Done[Done]
+```
+
+> [!NOTE]
+> The workflow **orchestrator-workers** pattern and **agent with a sub-agent as a tool** look similar on paper but they're different at the control-flow level. In orchestrator-workers your code fixes the shape: orchestrator → workers → synthesize → return. In the agent composition, the parent agent dynamically decides whether to spawn a sub-agent at all, how many to spawn, and when to stop — it's an autonomous loop all the way down.
+
+Composition is orthogonal to the core patterns. You pick your pattern (workflow or agent) for each layer; composition is how you build bigger systems from those layers.
 
 ## The Average Joes Lab stance: purist agents only
 
