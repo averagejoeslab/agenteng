@@ -75,31 +75,38 @@ async def bash(cmd: str) -> str:
 
 TOOLS = {
     "read":  {"fn": read,  "description": "Read the contents of a file",
-              "params": ["path"]},
+              "params": {"path": "Path to the file to read"}},
     "write": {"fn": write, "description": "Create or overwrite a file",
-              "params": ["path", "content"]},
+              "params": {"path": "Path to the file to write",
+                         "content": "Content to write to the file"}},
     "edit":  {"fn": edit,  "description": "Replace 'old' with 'new' in a file; 'old' must appear exactly once",
-              "params": ["path", "old", "new"]},
+              "params": {"path": "Path to the file to edit",
+                         "old": "Exact text to replace (must appear exactly once)",
+                         "new": "Replacement text"}},
     "grep":  {"fn": grep,  "description": "Search file contents for a regex pattern under a directory",
-              "params": ["pattern", "path"]},
+              "params": {"pattern": "Regex pattern to search for",
+                         "path": "Directory to search under"}},
     "glob":  {"fn": glob,  "description": "Find files matching a glob pattern (use ** for recursive)",
-              "params": ["pattern"]},
+              "params": {"pattern": "Glob pattern; use ** for recursive matches"}},
     "bash":  {"fn": bash,  "description": "Run a shell command",
-              "params": ["cmd"]},
+              "params": {"cmd": "Shell command to run"}},
 }
 
 
 def build_tool_schemas(tools):
     schemas = []
     for name, meta in tools.items():
-        properties = {p: {"type": "string"} for p in meta["params"]}
+        properties = {
+            p: {"type": "string", "description": desc}
+            for p, desc in meta["params"].items()
+        }
         schemas.append({
             "name": name,
             "description": meta["description"],
             "input_schema": {
                 "type": "object",
                 "properties": properties,
-                "required": meta["params"],
+                "required": list(meta["params"]),
             },
         })
     return schemas

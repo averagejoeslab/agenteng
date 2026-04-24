@@ -135,33 +135,39 @@ Design notes:
 - Captures both stdout and stderr — error output matters.
 - 30-second timeout prevents infinite hangs.
 - Runs on the host, no sandbox.
-- `subprocess.run` is blocking, so running two `bash` calls "in parallel" via `asyncio.gather` actually runs them serially from the event loop's view. That's a known cost of keeping tool bodies sync; a more thorough fix uses `asyncio.to_thread` and lands in Part 7 (Cost/Latency). For now, sequential-but-correct is fine.
+- Sync tool bodies in general block the event loop while they run — a slow `bash` or a multi-thousand-file `grep` holds up every other concurrent call. The fix is to wrap tool bodies in `asyncio.to_thread`, which lands in Part 7 (Cost/Latency). For Part 2, sequential-but-correct is fine; file I/O is fast enough that no one notices.
 
 > [!WARNING]
 > `bash` runs arbitrary commands on your machine with your permissions. In real agents you'd sandbox this (Docker, firejail, seccomp). For this curriculum — running locally in a project you control — it's fine. Part 6 (Safety and Guardrails) covers sandboxing properly.
 
 ## Adding them to the registry
 
-Update the `TOOLS` dict:
+Update the `TOOLS` dict. Each parameter carries a short description (per Module 5's advice) — the factory from Module 6 lifts those straight into the schema.
 
 ```python
 TOOLS = {
     "read":  {"fn": read,  "description": "Read the contents of a file",
-              "params": ["path"]},
+              "params": {"path": "Path to the file to read"}},
     "write": {"fn": write, "description": "Create or overwrite a file",
-              "params": ["path", "content"]},
+              "params": {"path": "Path to the file to write",
+                         "content": "Content to write to the file"}},
     "edit":  {"fn": edit,  "description": "Replace 'old' with 'new' in a file; 'old' must appear exactly once",
-              "params": ["path", "old", "new"]},
+              "params": {"path": "Path to the file to edit",
+                         "old": "Exact text to replace (must appear exactly once)",
+                         "new": "Replacement text"}},
     "grep":  {"fn": grep,  "description": "Search file contents for a regex pattern under a directory",
-              "params": ["pattern", "path"]},
+              "params": {"pattern": "Regex pattern to search for",
+                         "path": "Directory to search under"}},
     "glob":  {"fn": glob,  "description": "Find files matching a glob pattern (use ** for recursive)",
-              "params": ["pattern"]},
+              "params": {"pattern": "Glob pattern; use ** for recursive matches"}},
     "bash":  {"fn": bash,  "description": "Run a shell command",
-              "params": ["cmd"]},
+              "params": {"cmd": "Shell command to run"}},
 }
 ```
 
 Six tools. No changes needed to `build_tool_schemas()` or `execute_tool()` — the registry pattern handles them.
+
+The system prompt also loses its single-tool hint — it read *"Use the read tool when you need to examine file contents"* through Module 6; with six tools, naming them all in the prompt adds noise without helping the model. Shorten it to `"You are a helpful coding assistant."` — the schemas carry the rest.
 
 Make sure the imports at the top of `main.py` cover everything the tools need:
 
@@ -248,7 +254,9 @@ Tool specs:
 - glob(pattern): Python's glob.glob with recursive=True, return sorted matches joined by newline (alias the module as _glob to avoid name collision)
 - bash(cmd): subprocess.run with shell=True, capture_output=True, 30s timeout; return stdout+stderr or "(exit N)"
 
-Then add each to the TOOLS dict with name, fn, description, and params list. Don't change build_tool_schemas or execute_tool — they already handle the new tools.
+Then add each to the TOOLS dict with fn, description, and a params dict mapping each parameter name to a short description the model will read. Don't change build_tool_schemas or execute_tool — they already handle the new tools.
+
+Also shorten the system prompt to "You are a helpful coding assistant." — the single-tool hint from the earlier modules adds noise now that there are six tools.
 ```
 
 The prompt tells your agent *what* to write. The module explains *why* — read it first.

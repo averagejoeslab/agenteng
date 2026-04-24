@@ -28,7 +28,7 @@ TOOLS = {
     "read": {
         "fn": read,
         "description": "Read the contents of a file",
-        "params": ["path"],
+        "params": {"path": "Path to the file to read"},
     },
     # more tools here
 }
@@ -38,7 +38,9 @@ Three fields per tool — matching the components from [Module 5](../05-tool-des
 
 - `fn` — the async function that does the work
 - `description` — what the model reads to pick the tool
-- `params` — the parameter names (all strings for now)
+- `params` — a dict mapping each parameter name to a short description
+
+`params` is a dict, not a list, because Module 5's rule *"put a description on each property"* needs somewhere to put them. The key is the parameter name; the value is the text the model will read when deciding how to call the tool.
 
 One structure, one source of truth. Adding a tool means adding one entry.
 
@@ -50,20 +52,23 @@ The Anthropic API expects schemas in a specific JSON Schema shape. Instead of ha
 def build_tool_schemas(tools):
     schemas = []
     for name, meta in tools.items():
-        properties = {p: {"type": "string"} for p in meta["params"]}
+        properties = {
+            p: {"type": "string", "description": desc}
+            for p, desc in meta["params"].items()
+        }
         schemas.append({
             "name": name,
             "description": meta["description"],
             "input_schema": {
                 "type": "object",
                 "properties": properties,
-                "required": meta["params"],
+                "required": list(meta["params"]),
             },
         })
     return schemas
 ```
 
-Every parameter is a `string` for now. Every parameter is required. That's enough for the tools Module 7 adds. Richer types (numbers, optionals) can be added when a tool needs them.
+Every parameter is a `string` for now, and every parameter is required. That's enough for the tools Module 7 adds. When a tool needs richer types (numbers, booleans) or optional params, extend the registry entry with a type per parameter or a separate `optional` list — the factory is the only place that needs to change.
 
 Call this once at startup and pass the result to `client.messages.create(tools=...)`.
 
@@ -115,7 +120,7 @@ TOOLS = {
     "read": {
         "fn": read,
         "description": "Read the contents of a file",
-        "params": ["path"],
+        "params": {"path": "Path to the file to read"},
     },
 }
 
@@ -123,14 +128,17 @@ TOOLS = {
 def build_tool_schemas(tools):
     schemas = []
     for name, meta in tools.items():
-        properties = {p: {"type": "string"} for p in meta["params"]}
+        properties = {
+            p: {"type": "string", "description": desc}
+            for p, desc in meta["params"].items()
+        }
         schemas.append({
             "name": name,
             "description": meta["description"],
             "input_schema": {
                 "type": "object",
                 "properties": properties,
-                "required": meta["params"],
+                "required": list(meta["params"]),
             },
         })
     return schemas
@@ -162,7 +170,7 @@ async def main():
             response = await client.messages.create(
                 model="claude-sonnet-4-5",
                 max_tokens=1024,
-                system="You are a helpful coding assistant.",
+                system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
                 messages=messages,
                 tools=TOOL_SCHEMAS,
             )
@@ -215,8 +223,8 @@ If you want your coding agent to write this for you, paste:
 ```
 Refactor main.py from the previous module to use a tool registry pattern:
 
-1. Define a TOOLS dict mapping tool name to {fn, description, params}. For now it has one entry for "read" with params=["path"]. The fn is an async function.
-2. Write build_tool_schemas(TOOLS) that generates the JSON Schema list the Anthropic API expects. All parameters are string type; all are required.
+1. Define a TOOLS dict mapping tool name to {fn, description, params}. For now it has one entry for "read" with params={"path": "Path to the file to read"}. The fn is an async function. params is a dict so each parameter can carry a description the model will read.
+2. Write build_tool_schemas(TOOLS) that generates the JSON Schema list the Anthropic API expects. All parameters are string type with the description from params; all are required.
 3. Write `async def execute_tool(name, input)` that looks up the tool and awaits its fn with unpacked input. If the name isn't in TOOLS, return an error string. Do NOT wrap the call in try/except — the tool handles its own errors for now.
 4. Replace the ad-hoc dispatch function in the TAO loop with a call to execute_tool, still using asyncio.gather for parallel dispatch.
 5. Compute TOOL_SCHEMAS = build_tool_schemas(TOOLS) once at startup and pass it as the tools parameter to messages.create.

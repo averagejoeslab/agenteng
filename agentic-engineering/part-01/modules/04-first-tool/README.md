@@ -67,7 +67,15 @@ The schema is a [JSON Schema](https://json-schema.org/) dict. Two fields matter 
 
 The tool returns a string. The `try/except` catches errors (missing file, permission denied) and returns them as strings — so the model can read the error and try again instead of crashing the loop. Part 2 covers error design more thoroughly; for now, the pattern to remember is *errors are strings the model can read*.
 
-The function is `async def` even though the body doesn't `await` anything. This lets us dispatch multiple tool calls in parallel with `asyncio.gather` — see ACT below.
+The function is `async def` even though the body doesn't `await` anything. This lets us dispatch multiple tool calls in parallel with `asyncio.gather` — which is the next thing to explain.
+
+## Why `asyncio.gather`
+
+The model might emit `[tool_use(read, "a.py"), tool_use(read, "b.py")]` in a single response. A sequential `for` loop reads `a.py`, then reads `b.py`. With `asyncio.gather` both reads progress concurrently — the event loop schedules them together and collects their results in the same order as the input.
+
+For one fast file read the speedup is invisible. For a `grep` across thousands of files or a `bash` command that shells out, it's the difference between "wait once" and "wait twice." Setting this up now means every tool we add in Part 2 gets parallelism for free.
+
+Order is preserved — `outputs[i]` is the result of `tool_calls[i]` — which is how the `zip` in the OBSERVE section below pairs each result back to its originating request.
 
 ## Wiring it into the loop
 
@@ -168,14 +176,6 @@ Three changes from Module 3:
 1. **`tools=tools`** added to the `create()` call — gives the model the schema.
 2. **ACT section** fills the stub. `dispatch(call)` picks the tool by name; `asyncio.gather(...)` runs every requested call concurrently. With one tool the branching is trivial — Part 2 replaces it with a proper registry.
 3. **OBSERVE section** fills the stub — packages results as `tool_result` blocks with matching `tool_use_id`, then appends them as a user message so the model sees them on the next iteration.
-
-## Why `asyncio.gather`
-
-The model might emit `[tool_use(read, "a.py"), tool_use(read, "b.py")]` in a single response. A sequential loop reads `a.py`, then reads `b.py`. With `asyncio.gather` both reads progress concurrently — the event loop schedules them together and collects their results in the same order as the input.
-
-For one fast file read the speedup is invisible. For a `grep` across thousands of files and a `bash` command that shells out, it's the difference between "wait once" and "wait twice." Setting this up now means every tool we add in Part 2 gets parallelism for free.
-
-Order is preserved — `outputs[i]` is the result of `tool_calls[i]` — which is why the `zip` below it works.
 
 ## Running it
 
