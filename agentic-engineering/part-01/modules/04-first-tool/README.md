@@ -35,7 +35,7 @@ sequenceDiagram
 
 ## Defining a tool
 
-A tool is two pieces: an async Python function that does the work, and a schema that tells the model how to call it.
+A tool is two pieces, same as Module 1: an **implementation** and a **schema**. The implementation is a function in whatever language you're using; the schema is JSON Schema (LLM industry standard). In our Python agent the implementation is an `async def` — explained below — and the schema is a plain dict:
 
 ```python
 async def read(path: str) -> str:

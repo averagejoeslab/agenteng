@@ -68,7 +68,12 @@ Module 3 wraps this loop around an LLM call inside a terminal REPL environment.
 
 ## Show a tool
 
-A tool is a Python function plus a JSON schema describing its inputs. The schema tells the model how to call it.
+A tool has two parts:
+
+- An **implementation** — a function, in whatever language the agent is written in. It does the work.
+- A **schema** — a structured description of the inputs the function expects. The model reads the schema to figure out what to pass.
+
+The LLM industry standardized on [JSON Schema](https://json-schema.org/) for the schema side, so that part looks the same in Python, TypeScript, Go, or Rust. Only the implementation changes. Here both sides are Python:
 
 ```python
 async def read(path: str) -> str:

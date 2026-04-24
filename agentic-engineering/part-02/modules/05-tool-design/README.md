@@ -6,16 +6,16 @@ This module is conceptual. Module 6 turns the principles into a registry; Module
 
 ## The components of a function tool
 
-A **function tool** has four parts. The model needs all four to use the tool; your code needs all four to run it.
+A **function tool** has four parts. The model needs all four to use the tool; your code needs all four to run it. These parts are language-agnostic — they exist in any stack that talks to a modern LLM API.
 
 | Part | Lives in | Who reads it |
 |---|---|---|
-| **Function** | Your Python code | Your executor (runs the function) |
+| **Function** | Your code | Your executor (runs the function) |
 | **Name** | The tool's schema | The model (picks the tool by name) |
 | **Description** | The tool's schema | The model (decides when to use it) |
 | **Schema** | The tool's schema | The model (figures out what to pass) |
 
-Concretely:
+Concretely (Python expressing the function side, JSON Schema for the rest):
 
 ```python
 def read(path: str) -> str:           # the function
@@ -68,7 +68,7 @@ def read(path: str) -> str:
         return f.read()   # raises FileNotFoundError if file is missing
 ```
 
-If the file doesn't exist, Python raises an exception. The loop crashes — unless something catches it.
+If the file doesn't exist, the runtime raises an error. The loop crashes — unless something catches it. (Every language has some version of this: Python raises exceptions, Go returns `error`, Rust returns `Result::Err`. The problem is the same regardless of mechanism: an unhandled failure tears the agent loop down.)
 
 The right pattern: the model sees a string describing the failure.
 
@@ -78,12 +78,12 @@ The right pattern: the model sees a string describing the failure.
 
 It reads the error, reasons about it ("oh, maybe I meant `foo.md`"), and tries again. **The error message is a self-correction channel.**
 
-*Where* the try/except lives is a design decision. Two choices:
+*Where* the error catching lives (Python's `try`/`except`, JavaScript's `try`/`catch`, Rust's `?` + `Result` mapping — same idea, different syntax) is a design decision. Two choices:
 
-- **In each tool.** Every tool function catches its own exceptions. Simple, but the same pattern repeats everywhere.
-- **In the executor.** One central function catches exceptions for all tools. DRY; tools stay thin.
+- **In each tool.** Every tool catches its own failures. Simple, but the same pattern repeats everywhere.
+- **In the executor.** One central function catches failures for all tools. DRY; tools stay thin.
 
-Module 4 put try/except in the tool. Module 6 and 7 continue that way. Module 8 pulls it up into a central executor — *the shift Part 2 is really about.*
+Module 4 put the catch in the tool. Modules 6 and 7 continue that way. Module 8 pulls it up into a central executor — *the shift Part 2 is really about.*
 
 ## Descriptions and naming
 
