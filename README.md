@@ -113,45 +113,12 @@ flowchart LR
     Q -->|no| Done[Done]
 ```
 
-## Composition patterns
+## Composition
 
-Real production systems rarely run a pure workflow or a pure agent — they compose them. Three compositions show up consistently across primary-source documentation (Anthropic, OpenAI, LangChain, AutoGen).
-
-**Orchestrator with sub-agents as tools** — a parent agent stays in control of the conversation; other agents appear in its toolkit. When the parent calls a sub-agent, the sub-agent runs in its own context and returns a summary; the parent decides what to do next. Distinct from the *orchestrator-workers* workflow above: there your code fixes the shape; here the parent's loop dynamically decides whether and how to use sub-agents. Documented across primary sources as *"agents as tools"* (OpenAI Agents SDK), *subagents* (Claude Code), and *supervisor* (LangGraph). Production: Claude Research's lead agent dispatches focused sub-agents for parallel exploration.
-
-```mermaid
-flowchart LR
-    Task[User task] --> A[Parent agent]
-    A --> T1[Regular tool]
-    A --> Sub[Sub-agent<br/>autonomous loop]
-    T1 --> A
-    Sub --> A
-    A --> Done[Done]
-```
-
-**Handoff between agents** — one agent decides, then transfers control to another. The first agent does **not** resume; the target agent owns the rest of the conversation. Distinct from the orchestrator pattern because ownership moves rather than work being delegated and reported back. Documented by OpenAI's Agents SDK (kept from Swarm) and Microsoft AutoGen as a first-class primitive. Production: customer-support triage where a router agent punts to a specialist who takes over.
-
-```mermaid
-flowchart LR
-    Task[User task] --> A1[Triage agent]
-    A1 -->|handoff| A2[Specialist agent<br/>autonomous loop]
-    A2 --> Done[Done]
-```
-
-**Workflow with an agent stage** — a predefined pipeline (chain, router, parallel fan-out) where one of the stages is itself an autonomous agent loop. The pipeline shape is fixed by code; one slot is open-ended. Common when most of a task is structured but a specific sub-task is exploratory. Production: deep-research products that start with a deterministic planning step, then delegate to an agent for open-ended exploration.
-
-```mermaid
-flowchart LR
-    In[Input] --> S1[LLM step 1]
-    S1 --> Ag[Agent step<br/>autonomous loop]
-    Ag --> S3[LLM step 3]
-    S3 --> Out[Output]
-```
+Agents and workflows compose. You can build multi-agent systems, multi-workflow systems, or systems that mix both.
 
 > [!NOTE]
 > **Whether to use multi-agent composition at all is a live disagreement in the field.** Anthropic embraces it ([multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system); Claude Code subagents). Cognition argues *against* it in [*Don't Build Multi-Agents*](https://cognition.ai/blog/dont-build-multi-agents), making the case for a single-threaded linear agent with shared context — citing reliability and debuggability. Cursor 2.0 takes a third path: parallel independent agents on separate Git worktrees, no supervisor. The right composition depends on whether sub-tasks share context, run in parallel, and need to surface partial state — there is no default answer.
-
-Composition is orthogonal to the core patterns. You pick your pattern (workflow or agent) for each layer; composition is how you build bigger systems from those layers.
 
 ## The Average Joes Lab stance: purist agents only
 
