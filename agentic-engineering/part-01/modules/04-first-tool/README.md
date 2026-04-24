@@ -14,6 +14,8 @@ When the LLM has tools, it can emit `tool_use` blocks in its response. Each is a
 
 Your code runs the tool with those arguments and feeds the result back as a `tool_result` block, matched by `tool_use_id`. That's the contract: the model asks, your code answers, the model keeps going.
 
+A single response can contain **multiple** `tool_use` blocks. The model can ask to read two files at once, or run three independent commands. Those requests are independent — no reason to execute them one after the other.
+
 ```mermaid
 sequenceDiagram
     participant User
@@ -33,10 +35,10 @@ sequenceDiagram
 
 ## Defining a tool
 
-A tool is two pieces: a Python function that does the work, and a schema that tells the model how to call it.
+A tool is two pieces: an async Python function that does the work, and a schema that tells the model how to call it.
 
 ```python
-def read(path: str) -> str:
+async def read(path: str) -> str:
     try:
         with open(path, "r") as f:
             return f.read()
@@ -65,27 +67,31 @@ The schema is a [JSON Schema](https://json-schema.org/) dict. Two fields matter 
 
 The tool returns a string. The `try/except` catches errors (missing file, permission denied) and returns them as strings — so the model can read the error and try again instead of crashing the loop. Part 2 covers error design more thoroughly; for now, the pattern to remember is *errors are strings the model can read*.
 
+The function is `async def` even though the body doesn't `await` anything. This lets us dispatch multiple tool calls in parallel with `asyncio.gather` — see ACT below.
+
 ## Wiring it into the loop
 
 Extend `main.py` from Module 3:
 
 ```python
 import os
-from anthropic import Anthropic
+import asyncio
+from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-messages = []
+client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
 
 # The tool
-def read(path: str) -> str:
+async def read(path: str) -> str:
     try:
         with open(path, "r") as f:
             return f.read()
     except Exception as e:
         return f"error: {e}"
+
 
 tools = [
     {
@@ -101,58 +107,75 @@ tools = [
     }
 ]
 
-while True:
-    # The terminal environment: read a user prompt
-    user_input = input("❯ ")
-    if user_input.lower() in ("/q", "exit"):
-        break
 
-    messages.append({"role": "user", "content": user_input})
+async def dispatch(call):
+    if call.name == "read":
+        return await read(**call.input)
+    return f"error: unknown tool {call.name}"
 
-    # The TAO loop: iterate until the model stops requesting tools
+
+async def main():
+    messages = []
+
     while True:
-        # THINK: call the model (now with tools)
-        response = client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=1024,
-            system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
-            messages=messages,
-            tools=tools,
-        )
-        messages.append({"role": "assistant", "content": response.content})
-
-        # Display any text the model produced
-        for block in response.content:
-            if block.type == "text":
-                print(block.text)
-
-        # If the model didn't ask for tools, we're done with this turn
-        tool_calls = [b for b in response.content if b.type == "tool_use"]
-        if not tool_calls:
+        # The terminal environment: read a user prompt
+        user_input = input("❯ ")
+        if user_input.lower() in ("/q", "exit"):
             break
 
-        # ACT: execute each tool the model requested
-        results = []
-        for call in tool_calls:
-            if call.name == "read":
-                output = read(**call.input)
-            else:
-                output = f"error: unknown tool {call.name}"
-            results.append({
-                "type": "tool_result",
-                "tool_use_id": call.id,
-                "content": output,
+        messages.append({"role": "user", "content": user_input})
+
+        # The TAO loop: iterate until the model stops requesting tools
+        while True:
+            # THINK: call the model (now with tools)
+            response = await client.messages.create(
+                model="claude-sonnet-4-5",
+                max_tokens=1024,
+                system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
+                messages=messages,
+                tools=tools,
+            )
+            messages.append({"role": "assistant", "content": response.content})
+
+            # Display any text the model produced
+            for block in response.content:
+                if block.type == "text":
+                    print(block.text)
+
+            # If the model didn't ask for tools, we're done with this turn
+            tool_calls = [b for b in response.content if b.type == "tool_use"]
+            if not tool_calls:
+                break
+
+            # ACT: execute every requested tool in parallel
+            outputs = await asyncio.gather(*(dispatch(c) for c in tool_calls))
+
+            # OBSERVE: append results as the next user message
+            messages.append({
+                "role": "user",
+                "content": [
+                    {"type": "tool_result", "tool_use_id": c.id, "content": o}
+                    for c, o in zip(tool_calls, outputs)
+                ],
             })
 
-        # OBSERVE: append results as the next user message
-        messages.append({"role": "user", "content": results})
+
+asyncio.run(main())
 ```
 
 Three changes from Module 3:
 
 1. **`tools=tools`** added to the `create()` call — gives the model the schema.
-2. **ACT section** fills the stub — executes each requested tool. The `if call.name == "read"` dispatch is minimal for now; Part 2 replaces it with a proper registry.
+2. **ACT section** fills the stub. `dispatch(call)` picks the tool by name; `asyncio.gather(...)` runs every requested call concurrently. With one tool the branching is trivial — Part 2 replaces it with a proper registry.
 3. **OBSERVE section** fills the stub — packages results as `tool_result` blocks with matching `tool_use_id`, then appends them as a user message so the model sees them on the next iteration.
+
+## Why `asyncio.gather`
+
+The model might emit `[tool_use(read, "a.py"), tool_use(read, "b.py")]` in a single response. A sequential loop reads `a.py`, then reads `b.py`. With `asyncio.gather` both reads progress concurrently — the event loop schedules them together and collects their results in the same order as the input.
+
+For one fast file read the speedup is invisible. For a `grep` across thousands of files and a `bash` command that shells out, it's the difference between "wait once" and "wait twice." Setting this up now means every tool we add in Part 2 gets parallelism for free.
+
+Order is preserved — `outputs[i]` is the result of `tool_calls[i]` — which is why the `zip` below it works.
 
 ## Running it
 
@@ -177,7 +200,7 @@ Yes — main.py imports load_dotenv from dotenv and calls it before creating the
 The TAO loop now runs **multiple iterations per REPL turn**:
 
 1. **THINK** — model sees the question, emits `tool_use: read(path="pyproject.toml")`
-2. **ACT** — your code runs `read("pyproject.toml")` → file contents as a string
+2. **ACT** — `asyncio.gather` dispatches the one call; `read("pyproject.toml")` returns the file contents
 3. **OBSERVE** — result appended to messages
 4. **THINK (again)** — model now has the file contents, produces summary text
 5. No more tool requests → break out of the TAO loop, return to REPL
@@ -190,6 +213,7 @@ The dashed boxes in Module 3's diagram are now solid.
 - **The model directs the flow.** Your code didn't decide to call `read` — the model did. Your code just executed what was asked for.
 - **The system has autonomy over its own control flow.** Given a question it can't answer directly, the model reaches for a tool; given the file contents, it decides what to say next.
 - **The agent can now see its environment.** The filesystem was always there; now the model has a way to look at it.
+- **Parallel tool calls are free.** If the model asks for two reads at once, both run concurrently.
 
 By the [Anthropic definition](https://www.anthropic.com/engineering/building-effective-agents) from Module 0, this is an agent. Not a chatbot (has tools), not a workflow (the model directs the sequence).
 
@@ -198,8 +222,8 @@ By the [Anthropic definition](https://www.anthropic.com/engineering/building-eff
 The agent works, but it's minimal:
 
 - **Only one tool.** It can read, but it can't write, edit, search, or run anything. A real coding agent needs a toolkit.
-- **The executor is ad-hoc.** The `if call.name == "read"` dispatch doesn't scale past a handful of tools.
-- **The error-return pattern is there but underspecified.** Errors come back as strings; in Part 2 we'll formalize this as the model's self-correction channel.
+- **The executor is ad-hoc.** The `dispatch` function's `if call.name == "read"` branch doesn't scale past a handful of tools.
+- **The error-return pattern is there but underspecified.** Errors come back as strings; in Part 2 we'll formalize this as the model's self-correction channel and pull the `try/except` out of every tool into a single executor.
 - **No memory across sessions.** The conversation resets every time you restart the REPL.
 
 Part 2 (Tool Design) addresses the first three: a proper tool registry, dispatching executor, error-message design, and a multi-tool toolkit (`read`, `write`, `edit`, `bash`, `grep`, `glob`). Part 3 (Memory and Context) handles the fourth.
@@ -211,15 +235,15 @@ If you want your coding agent to write this for you, paste:
 ```
 Extend main.py from the previous module by adding a single tool called "read":
 
-1. Define `def read(path: str) -> str` that opens the file at `path`, returns its contents, and catches any exception returning the error as a string (so the model can self-correct instead of crashing the loop)
+1. Define `async def read(path: str) -> str` that opens the file at `path`, returns its contents, and catches any exception returning the error as a string (so the model can self-correct instead of crashing the loop). It's async even though the body is sync — this lets the executor dispatch multiple tool calls in parallel with asyncio.gather.
 2. Define a `tools` list with one entry:
    - name: "read"
    - description: "Read the contents of a file"
    - input_schema: JSON Schema dict with property "path" (string with a short description), required
 3. Pass tools=tools to the messages.create call
 4. Update the system prompt to be a helpful coding assistant that uses the read tool when it needs to examine file contents
-5. Fill the ACT stub: for each tool_use block in the response, dispatch on call.name, execute the matching function with call.input, and collect results as tool_result dicts (with matching tool_use_id and content being the function's string output)
-6. Fill the OBSERVE stub: append the list of tool_result dicts as a new user message so they feed back into the next iteration of the TAO loop
+5. Fill the ACT stub: write `async def dispatch(call)` that picks the tool by name and awaits it, returning "error: unknown tool {name}" for unknown names. Then run every call in parallel with `outputs = await asyncio.gather(*(dispatch(c) for c in tool_calls))`.
+6. Fill the OBSERVE stub: zip tool_calls and outputs into tool_result dicts (matching tool_use_id and content), and append the list as a new user message so they feed back into the next iteration of the TAO loop.
 ```
 
 The prompt tells your agent *what* to write. The module explains *why* — read it first.

@@ -42,45 +42,52 @@ Extend `main.py`:
 
 ```python
 import os
-from anthropic import Anthropic
+import asyncio
+from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-messages = []
+client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-while True:
-    # The terminal environment: read a user prompt
-    user_input = input("❯ ")
-    if user_input.lower() in ("/q", "exit"):
-        break
 
-    messages.append({"role": "user", "content": user_input})
+async def main():
+    messages = []
 
-    # The TAO loop: iterate until the model stops requesting tools
     while True:
-        # THINK: call the model
-        response = client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=1024,
-            system="You are a helpful assistant.",
-            messages=messages,
-        )
-        messages.append({"role": "assistant", "content": response.content})
-
-        # Display any text the model produced
-        for block in response.content:
-            if block.type == "text":
-                print(block.text)
-
-        # If the model didn't ask for tools, we're done with this turn
-        tool_calls = [b for b in response.content if b.type == "tool_use"]
-        if not tool_calls:
+        # The terminal environment: read a user prompt
+        user_input = input("❯ ")
+        if user_input.lower() in ("/q", "exit"):
             break
 
-        # ACT: execute the tools (Module 4 fills this in)
-        # OBSERVE: feed the results back as a user message (Module 4 fills this in)
+        messages.append({"role": "user", "content": user_input})
+
+        # The TAO loop: iterate until the model stops requesting tools
+        while True:
+            # THINK: call the model
+            response = await client.messages.create(
+                model="claude-sonnet-4-5",
+                max_tokens=1024,
+                system="You are a helpful assistant.",
+                messages=messages,
+            )
+            messages.append({"role": "assistant", "content": response.content})
+
+            # Display any text the model produced
+            for block in response.content:
+                if block.type == "text":
+                    print(block.text)
+
+            # If the model didn't ask for tools, we're done with this turn
+            tool_calls = [b for b in response.content if b.type == "tool_use"]
+            if not tool_calls:
+                break
+
+            # ACT: execute the tools (Module 4 fills this in)
+            # OBSERVE: feed the results back as a user message (Module 4 fills this in)
+
+
+asyncio.run(main())
 ```
 
 Two nested loops are now visible in the code:
@@ -88,7 +95,9 @@ Two nested loops are now visible in the code:
 - **Outer** `while True` — the REPL. Reads prompts until you type `/q` or `exit`.
 - **Inner** `while True` — the TAO loop. Iterates until the model stops requesting tools.
 
-`messages` lives outside the REPL loop so conversation state persists across turns.
+`messages` lives inside `main` but outside both loops — it persists across REPL turns so the conversation has history.
+
+`input()` stays sync. It blocks the event loop while waiting for you to type, but there's nothing else running to block — the REPL *is* the whole program. Trading it for an async input library would add complexity without buying anything.
 
 ## Running it
 
@@ -135,21 +144,21 @@ The runtime shape is complete: a REPL that wraps a TAO loop. Prompts go in, resp
 If you want your coding agent to write this for you, paste:
 
 ```
-Extend main.py from the previous module with two nested while True loops:
+Extend main.py from the previous module with two nested while True loops inside an `async def main()` entrypoint (invoked via `asyncio.run(main())`):
 
 Outer (the REPL / terminal environment):
-- Read user input with the prompt "❯ "
+- Read user input with the prompt "❯ " (plain sync input() is fine — the REPL has nothing else to do while waiting)
 - Break if the input is "/q" or "exit"
 - Otherwise append it as a user message
 
 Inner (the TAO loop):
-- Call the LLM with the accumulated messages
+- Await client.messages.create(...) with the accumulated messages
 - Append the assistant's response to messages
 - Print any text blocks the model produced
 - Break if the response has no tool_use blocks
 - Leave comments where ACT (execute tools) and OBSERVE (feed results back) will go — tools aren't added yet
 
-The messages list should live outside the outer loop so the conversation persists across turns.
+The messages list should live inside main() but outside both loops so the conversation persists across turns.
 ```
 
 The prompt tells your agent *what* to write. The module explains *why* — read it first.

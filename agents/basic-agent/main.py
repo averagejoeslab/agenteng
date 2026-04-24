@@ -1,15 +1,15 @@
 import os
-from anthropic import Anthropic
+import asyncio
+from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-messages = []
+client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 
 # The tool
-def read(path: str) -> str:
+async def read(path: str) -> str:
     try:
         with open(path, "r") as f:
             return f.read()
@@ -35,48 +35,56 @@ tools = [
 ]
 
 
-while True:
-    # The terminal environment: read a user prompt
-    user_input = input("❯ ")
-    if user_input.lower() in ("/q", "exit"):
-        break
+async def dispatch(call):
+    if call.name == "read":
+        return await read(**call.input)
+    return f"error: unknown tool {call.name}"
 
-    messages.append({"role": "user", "content": user_input})
 
-    # The TAO loop: iterate until the model stops requesting tools
+async def main():
+    messages = []
+
     while True:
-        # THINK: call the model (now with tools)
-        response = client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=1024,
-            system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
-            messages=messages,
-            tools=tools,
-        )
-        messages.append({"role": "assistant", "content": response.content})
-
-        # Display any text the model produced
-        for block in response.content:
-            if block.type == "text":
-                print(block.text)
-
-        # If the model didn't ask for tools, we're done with this turn
-        tool_calls = [b for b in response.content if b.type == "tool_use"]
-        if not tool_calls:
+        # The terminal environment: read a user prompt
+        user_input = input("❯ ")
+        if user_input.lower() in ("/q", "exit"):
             break
 
-        # ACT: execute each tool the model requested
-        results = []
-        for call in tool_calls:
-            if call.name == "read":
-                output = read(**call.input)
-            else:
-                output = f"error: unknown tool {call.name}"
-            results.append({
-                "type": "tool_result",
-                "tool_use_id": call.id,
-                "content": output,
+        messages.append({"role": "user", "content": user_input})
+
+        # The TAO loop: iterate until the model stops requesting tools
+        while True:
+            # THINK: call the model (now with tools)
+            response = await client.messages.create(
+                model="claude-sonnet-4-5",
+                max_tokens=1024,
+                system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
+                messages=messages,
+                tools=tools,
+            )
+            messages.append({"role": "assistant", "content": response.content})
+
+            # Display any text the model produced
+            for block in response.content:
+                if block.type == "text":
+                    print(block.text)
+
+            # If the model didn't ask for tools, we're done with this turn
+            tool_calls = [b for b in response.content if b.type == "tool_use"]
+            if not tool_calls:
+                break
+
+            # ACT: execute every requested tool in parallel
+            outputs = await asyncio.gather(*(dispatch(c) for c in tool_calls))
+
+            # OBSERVE: append results as the next user message
+            messages.append({
+                "role": "user",
+                "content": [
+                    {"type": "tool_result", "tool_use_id": c.id, "content": o}
+                    for c, o in zip(tool_calls, outputs)
+                ],
             })
 
-        # OBSERVE: append results as the next user message
-        messages.append({"role": "user", "content": results})
+
+asyncio.run(main())

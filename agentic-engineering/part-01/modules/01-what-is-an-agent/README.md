@@ -15,7 +15,7 @@ An agent has three moving parts:
 An LLM call is an HTTP POST to the model provider's API. The response comes back as a list of content blocks — text, and optionally tool requests.
 
 ```python
-response = client.messages.create(
+response = await client.messages.create(
     model="claude-sonnet-4-5",
     max_tokens=1024,
     messages=[{"role": "user", "content": "What is 2 + 2?"}],
@@ -38,7 +38,7 @@ The cycle repeats: Think → Act → Observe → Think → ... until the model p
 ```python
 while True:
     # THINK: call the model
-    response = client.messages.create(
+    response = await client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=1024,
         messages=messages,
@@ -51,11 +51,11 @@ while True:
     if not tool_calls:
         break
 
-    # ACT: run each tool the model requested
-    results = [execute(call) for call in tool_calls]
+    # ACT: run every requested tool in parallel
+    results = await asyncio.gather(*(execute(call) for call in tool_calls))
 
     # OBSERVE: append results as the next user message
-    messages.append({"role": "user", "content": results})
+    messages.append({"role": "user", "content": list(results)})
 ```
 
 Module 3 wraps this loop around an LLM call inside a terminal REPL environment.
@@ -68,7 +68,7 @@ Module 3 wraps this loop around an LLM call inside a terminal REPL environment.
 A tool is a Python function plus a JSON schema describing its inputs. The schema tells the model how to call it.
 
 ```python
-def read(path: str) -> str:
+async def read(path: str) -> str:
     try:
         with open(path, "r") as f:
             return f.read()
@@ -98,20 +98,23 @@ All three components assembled into a minimal agent:
 
 ```python
 import os
-from anthropic import Anthropic
+import asyncio
+from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
 
 # A minimal tool
-def read(path: str) -> str:
+async def read(path: str) -> str:
     try:
         with open(path, "r") as f:
             return f.read()
     except Exception as e:
         return f"error: {e}"
+
 
 tools = [
     {
@@ -127,41 +130,45 @@ tools = [
     }
 ]
 
-messages = [{"role": "user", "content": "What's in pyproject.toml?"}]
 
-while True:
-    # THINK: the LLM runs; it emits text + optional tool requests
-    response = client.messages.create(
-        model="claude-sonnet-4-5",
-        max_tokens=1024,
-        system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
-        messages=messages,
-        tools=tools,
-    )
-    messages.append({"role": "assistant", "content": response.content})
+async def main():
+    messages = [{"role": "user", "content": "What's in pyproject.toml?"}]
 
-    # No tool requests → the model is done
-    tool_calls = [b for b in response.content if b.type == "tool_use"]
-    if not tool_calls:
-        break
+    while True:
+        # THINK: the LLM runs; it emits text + optional tool requests
+        response = await client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=1024,
+            system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
+            messages=messages,
+            tools=tools,
+        )
+        messages.append({"role": "assistant", "content": response.content})
 
-    # ACT: execute the tools the model requested
-    results = []
-    for call in tool_calls:
-        output = read(**call.input)
-        results.append({
-            "type": "tool_result",
-            "tool_use_id": call.id,
-            "content": output,
+        # No tool requests → the model is done
+        tool_calls = [b for b in response.content if b.type == "tool_use"]
+        if not tool_calls:
+            break
+
+        # ACT: execute every requested tool in parallel
+        outputs = await asyncio.gather(*(read(**c.input) for c in tool_calls))
+
+        # OBSERVE: append the results to the conversation
+        messages.append({
+            "role": "user",
+            "content": [
+                {"type": "tool_result", "tool_use_id": c.id, "content": o}
+                for c, o in zip(tool_calls, outputs)
+            ],
         })
 
-    # OBSERVE: append the results to the conversation
-    messages.append({"role": "user", "content": results})
+    # Print the final text from the model
+    for block in response.content:
+        if block.type == "text":
+            print(block.text)
 
-# Print the final text from the model
-for block in response.content:
-    if block.type == "text":
-        print(block.text)
+
+asyncio.run(main())
 ```
 
 Setup (API key, `uv`, dependencies) comes in [Module 2](../02-a-single-llm-call/); the pieces — LLM call, loop, environment, tools — are built up one at a time across Modules 2–4.
