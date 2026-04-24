@@ -56,26 +56,26 @@ The parallel-dispatch `asyncio.gather(*(execute_tool(...) for c in tool_calls))`
 
 With the executor doing this work, every tool in the registry now has the same shape:
 
-- Takes kwargs matching its `params`
-- Is awaitable (an `async def` function)
-- Returns a value the executor will stringify (or raises — the executor catches)
+- Takes named arguments matching its declared `params`
+- Runs as a coroutine (`async def` in Python, `async function` in JS, `async fn` in Rust — the name differs, the property doesn't)
+- Returns a value the executor will stringify (or throws — the executor catches)
 - Doesn't need its own try/except
 
 That's the **base tool contract**: the invariant every tool satisfies. The executor enforces it.
 
-Think of it like a function signature for the *whole category* of tools:
+As a language-neutral signature:
 
 ```
-async (**kwargs) -> str | Any   (raise allowed, executor handles)
+tool: (named args) → string | any    (may throw; executor handles it)
 ```
 
-Moving a responsibility from six places into one is the core refactor. But the pattern matters beyond cleanup:
+Moving a responsibility from six places into one is the core refactor. The pattern matters beyond cleanup — the executor is where **cross-cutting concerns** live, and every later Part hooks into it:
 
-- **Add observability** (Part 4): instrument one function, not six.
-- **Add approval gates** (Part 6): check permissions in one place before any tool runs.
-- **Add timing / cost** (Part 7): wrap execution with timers once. Part 7 also replaces the sync tool bodies with `asyncio.to_thread` wrappers here, so `asyncio.gather` delivers real parallelism for blocking tools like `bash`.
+- **Observability** (Part 4): instrument one function, not six.
+- **Safety** (Part 6): check permissions in one place before any tool runs.
+- **Cost / latency** (Part 7): wrap execution with timers once. Part 7 also replaces the sync tool bodies with `asyncio.to_thread` wrappers here, so `asyncio.gather` delivers real parallelism for blocking tools like `bash`.
 
-The executor is where cross-cutting concerns live. Once the base contract exists, each new concern is a one-line addition.
+Cross-cutting concerns are a language-agnostic concept — same pattern a middleware stack or an HTTP interceptor implements. Once the base contract exists, each new concern is a one-line addition.
 
 ## Refactoring the tools
 

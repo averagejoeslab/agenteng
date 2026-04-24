@@ -15,7 +15,7 @@ An agent has three moving parts:
 An LLM call is an HTTP POST to the model provider's API. The response comes back as a list of content blocks — text, and optionally tool requests.
 
 > [!NOTE]
-> The snippets below use `await`, `async def`, and `asyncio.run` without explaining them — they're Python's async machinery. Module 2 unpacks *why* we chose async; for now just read past it.
+> The snippets below use cooperative concurrency (Python's `async`/`await` + `asyncio.run`) without explaining the mechanics. Module 2 covers *why an agent wants this shape* — it's an agentic-engineering concern, not a Python-specific one. Read past the syntax for now.
 
 ```python
 response = await client.messages.create(

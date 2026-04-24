@@ -19,6 +19,8 @@ Every new tool adds an `elif` branch AND a separate schema dict at the top of th
 
 This module replaces that with a **tool registry**: one data structure that stores each tool's function and metadata together, plus a **factory** that derives the API-shaped schemas from the registry.
 
+The registry is a language-agnostic agentic-engineering pattern — a map from tool name to metadata, used as the single source of truth. Python expresses it as a `dict`; other languages use `Map`, `HashMap`, `record`. What matters is "one place defines all tools; code that needs schemas reads it, code that executes tools reads it."
+
 ## The registry
 
 A tool registry is a dict mapping tool name to metadata:

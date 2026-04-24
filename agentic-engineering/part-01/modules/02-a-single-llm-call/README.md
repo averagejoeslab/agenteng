@@ -2,7 +2,7 @@
 
 This module makes one LLM call. One prompt in, one response out. No loop, no tools, no state between calls.
 
-The code is **async** from the start. One call doesn't need concurrency, but every later module does — the model can request multiple tools in a single response, and we'll want to execute them in parallel. Establishing the async idiom here means no refactor later.
+The code uses **cooperative concurrency** from the start. One call doesn't need it, but every later module does: the model can request multiple tools in a single response, and we'll want to execute them in parallel. Establishing that shape here means no refactor later. Python expresses cooperative concurrency with `async`/`await` + `asyncio.run`; other languages have the same idea under different names.
 
 ## The Messages API
 
@@ -87,14 +87,18 @@ Expected output:
 
 That's the whole mechanic. The model saw the user message, generated a response, sent it back.
 
-## Why async
+## Why concurrent I/O
 
-Python's `async`/`await` lets a single thread wait on I/O without blocking. With one call there's nothing to overlap — it looks like pointless ceremony. Two things make it worth paying that cost now:
+An agent spends most of its wall time waiting — on the model API, on file reads, on shell commands. Each turn involves:
 
-- **Parallel tool calls later.** A single LLM response can request multiple tools at once. We'll want to run those in parallel with `asyncio.gather`. That requires the whole call stack up to `main` to be async.
-- **Consistency.** Mixing sync and async Python is painful. Pick one early; the choice is async because the production shape (Part 2 and beyond) needs it.
+- One HTTP call to the LLM (hundreds of milliseconds)
+- Zero-to-N tool calls, often independent and I/O-bound
 
-The alternative — starting sync, rewriting to async later — is the refactor we're avoiding.
+Doing that sequentially wastes the wait. The fix is **cooperative concurrency**: a runtime that suspends one pending operation and runs another on the same thread. Every mainstream language has a primitive for it — Python's `async`/`await`, JavaScript's `async`/`await` + `Promise`, Go's goroutines, Rust's `Future`s. They differ in syntax; the shape is the same: a function declares it can yield, the runtime resumes it when its I/O completes.
+
+With one LLM call and no tools there's nothing to overlap — this module looks like pointless ceremony. The reason to pay that cost now is that the *call-stack shape* has to match where we're going. A function that will eventually want to dispatch multiple tool calls in parallel must be a coroutine all the way up. Starting sync and rewriting later is the refactor we're avoiding.
+
+In Python terms: every function from here on is `async def`, and the program's entry point is `asyncio.run(main())`.
 
 ## What's missing
 

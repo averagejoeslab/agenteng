@@ -67,15 +67,20 @@ The schema is a [JSON Schema](https://json-schema.org/) dict. Two fields matter 
 
 The tool returns a string. The `try/except` catches errors (missing file, permission denied) and returns them as strings — so the model can read the error and try again instead of crashing the loop. Part 2 covers error design more thoroughly; for now, the pattern to remember is *errors are strings the model can read*.
 
-The function is `async def` even though the body doesn't `await` anything. This lets us dispatch multiple tool calls in parallel with `asyncio.gather` — which is the next thing to explain.
+The function is a coroutine (`async def`) even though the body doesn't currently yield. That's so the executor can dispatch multiple tool calls in parallel — the pattern explained next.
 
-## Why `asyncio.gather`
+## Why parallel tool dispatch
 
-The model might emit `[tool_use(read, "a.py"), tool_use(read, "b.py")]` in a single response. A sequential `for` loop reads `a.py`, then reads `b.py`. With `asyncio.gather` both reads progress concurrently — the event loop schedules them together and collects their results in the same order as the input.
+The model might emit `[tool_use(read, "a.py"), tool_use(read, "b.py")]` in a single response. The two reads don't depend on each other — running them one after the other wastes time.
 
-For one fast file read the speedup is invisible. For a `grep` across thousands of files or a `bash` command that shells out, it's the difference between "wait once" and "wait twice." Setting this up now means every tool we add in Part 2 gets parallelism for free.
+The pattern every language has for this: **fan out N independent operations, wait for all to finish, receive an ordered list of results.** Python calls it `asyncio.gather`. JavaScript calls it `Promise.all`. Go uses goroutines with a `sync.WaitGroup`. Rust has `futures::join_all`. The name changes; the shape doesn't.
 
-Order is preserved — `outputs[i]` is the result of `tool_calls[i]` — which is how the `zip` in the OBSERVE section below pairs each result back to its originating request.
+Two properties matter:
+
+- **Concurrency.** The runtime schedules all N operations together so their waits overlap. For one fast file read the speedup is invisible; for a `grep` across thousands of files or a `bash` command that shells out, it's the difference between "wait once" and "wait twice."
+- **Order preservation.** Results come back in the same order as the inputs. `outputs[i]` is the result of `tool_calls[i]`, which is how the `zip` in the OBSERVE section below pairs each result back to its originating request.
+
+Setting this up now means every tool we add in Part 2 gets parallelism for free.
 
 ## Wiring it into the loop
 
