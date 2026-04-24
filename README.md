@@ -44,7 +44,7 @@ flowchart LR
     end
 ```
 
-Both are legitimate agentic systems. This content subscribes to Anthropic's taxonomy.
+Both are legitimate agentic systems. This content subscribes to Anthropic's taxonomy. The sections below zoom in on each — common workflow patterns first, then common agent patterns.
 
 ### Common workflow patterns
 
@@ -99,6 +99,38 @@ flowchart LR
     E -->|good| Out[Output]
     E -->|refine| G
 ```
+
+### Common agent patterns
+
+Workflows are a catalog of orchestration shapes. Agents are closer to **one pattern** — an autonomous loop — with a few common extensions. What varies between agents is the environment, the toolkit, and whether one agent spawns others.
+
+**Autonomous agent** — an LLM in a loop with tools, choosing what to do next based on what it observes. This is the base pattern and what this repo builds.
+
+```mermaid
+flowchart LR
+    Task[User task] --> LLM[LLM]
+    LLM --> Q{Tool call?}
+    Q -->|yes| Act[Execute tool<br/>+ observe result]
+    Act --> LLM
+    Q -->|no| Done[Done]
+```
+
+**Orchestrator with sub-agents** — one agent delegates specialized sub-tasks to other agents, then synthesizes their results. Each sub-agent is itself an autonomous loop. Common in research agents (top-level agent dispatches independent probes) and coding agents (main agent spawns focused sub-agents for specific changes).
+
+```mermaid
+flowchart LR
+    Task[User task] --> O[Orchestrator agent]
+    O --> S1[Sub-agent 1]
+    O --> S2[Sub-agent 2]
+    O --> S3[Sub-agent 3]
+    S1 --> Syn[Synthesize]
+    S2 --> Syn
+    S3 --> Syn
+    Syn --> O
+    O --> Done[Done]
+```
+
+The distinction from the workflow orchestrator-workers pattern: the orchestrator *and* the workers are agents here — each runs its own autonomous loop, and the orchestrator dynamically decides which sub-agents to spawn, when to synthesize, and whether to keep going. In the workflow version your code decides those things in advance.
 
 ## The Average Joes Lab stance: purist agents only
 
