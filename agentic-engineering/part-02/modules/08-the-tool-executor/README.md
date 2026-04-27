@@ -71,8 +71,8 @@ tool: (named args) → string | any    (may throw; executor handles it)
 
 Moving a responsibility from six places into one is the core refactor. The pattern matters beyond cleanup — the executor is where **cross-cutting concerns** live, and every later Part hooks into it:
 
-- **Observability** (Part 4): instrument one function, not six.
-- **Safety** (Part 6): check permissions in one place before any tool runs.
+- **Safety** (Part 4): check permissions in one place before any tool runs.
+- **Observability** (Part 5): instrument one function, not six.
 - **Cost / latency** (Part 7): wrap execution with timers once. Part 7 also replaces the sync tool bodies with `asyncio.to_thread` wrappers here, so `asyncio.gather` delivers real parallelism for blocking tools like `bash`.
 
 Cross-cutting concerns are a language-agnostic concept — same pattern a middleware stack or an HTTP interceptor implements. Once the base contract exists, each new concern is a one-line addition.
@@ -184,8 +184,8 @@ Part 3 (Memory and Context) tackles the remaining limitations:
 
 The executor pattern stays. Each later Part adds responsibilities to it:
 
-- Part 4 (Observability): trace every tool call through the executor.
-- Part 6 (Safety): gate tool execution on permissions.
+- Part 4 (Safety): gate tool execution on permissions.
+- Part 5 (Observability): trace every tool call through the executor.
 - Part 7 (Cost/Latency): wrap tool bodies in `asyncio.to_thread` so blocking calls (`bash`, large file I/O) don't stall the event loop — and `asyncio.gather` gives real parallelism.
 
 ## Prompt your coding agent

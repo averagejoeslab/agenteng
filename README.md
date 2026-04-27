@@ -12,9 +12,9 @@ Working in this discipline involves the following items:
 - **Designing tools** — what capabilities the system has, at what granularity, with what error semantics.
 - **Architecting memory** — what's remembered, when it's remembered, and how it's retrieved
 - **Managing context** — the context window is a budget of tokens; determine what goes into context and what gets evicted.
+- **Handling safety/guardrails** — identity and access management, sandboxing, input/output detection, human approval gates, etc.
 - **Setting up observability** — structured traces of every LLM call, tool call, and state transition to help with debugging and monitoring.
 - **Building evaluations** — to benchmark the system's performance and ensure it is meeting the desired goals.
-- **Handling safety/guardrails** — identity and access management, sandboxing, input/output detection, human approval gates, etc.
 - **Managing cost and latency** — optimize costs and latency by caching, batching, model routing, parallelization, compression, etc.
 - **Tuning prompts and context** — behavioral optimization via tuning the system prompt and context management.
 
@@ -183,14 +183,14 @@ Understand proper agentic tool design and expand the basic agent by moving to a 
 ### Part 3 — Memory and Context *(coming soon)*
 Persistent memory across sessions, context window as a budget, semantic recall, compaction and eviction.
 
-### Part 4 — Observability *(coming soon)*
+### Part 4 — Safety and Guardrails *(coming soon)*
+Identity and access management, sandboxing, input/output detection, human approval gates, loop bounds.
+
+### Part 5 — Observability *(coming soon)*
 Structured traces of every LLM call, tool call, and state transition. Replay. Tooling landscape.
 
-### Part 5 — Evaluation *(coming soon)*
+### Part 6 — Evaluation *(coming soon)*
 Task-completion suites, trajectory analysis, LLM-as-judge, regression testing for non-deterministic systems.
-
-### Part 6 — Safety and Guardrails *(coming soon)*
-Identity and access management, sandboxing, input/output detection, human approval gates, loop bounds.
 
 ### Part 7 — Cost and Latency *(coming soon)*
 Caching, batching, model routing, parallelization, compression.

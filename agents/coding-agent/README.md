@@ -47,4 +47,4 @@ The model chains tools as needed (`glob` → `read`, `grep` → `edit`, etc.) to
 Dependencies, venv, and `.env` live at the `agents/` level.
 
 > [!WARNING]
-> `bash` runs arbitrary commands on the host. Don't use this on prompts from untrusted sources. Part 6 (Safety and Guardrails) adds sandboxing.
+> `bash` runs arbitrary commands on the host. Don't use this on prompts from untrusted sources. Part 4 (Safety and Guardrails) adds sandboxing.

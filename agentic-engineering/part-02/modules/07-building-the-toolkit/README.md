@@ -21,7 +21,7 @@ async def write(path: str, content: str) -> str:
 Design notes:
 
 - Returns a confirmation with byte count, not the content. The model knows what it wrote.
-- Overwrites without prompting. Destructive — safety guards come in Part 6.
+- Overwrites without prompting. Destructive — safety guards come in Part 4.
 - Creates the file if it doesn't exist.
 
 ## edit
@@ -138,7 +138,7 @@ Design notes:
 - Sync tool bodies in general block the event loop while they run — a slow `bash` or a multi-thousand-file `grep` holds up every other concurrent call. The fix is to wrap tool bodies in `asyncio.to_thread`, which lands in Part 7 (Cost/Latency). For Part 2, sequential-but-correct is fine; file I/O is fast enough that no one notices.
 
 > [!WARNING]
-> `bash` runs arbitrary commands on your machine with your permissions. In real agents you'd sandbox this (Docker, firejail, seccomp). For this curriculum — running locally in a project you control — it's fine. Part 6 (Safety and Guardrails) covers sandboxing properly.
+> `bash` runs arbitrary commands on your machine with your permissions. In real agents you'd sandbox this (Docker, firejail, seccomp). For this curriculum — running locally in a project you control — it's fine. Part 4 (Safety and Guardrails) covers sandboxing properly.
 
 ## Adding them to the registry
 
@@ -230,9 +230,9 @@ Module 8 centralizes error handling into the executor. Each tool simplifies to i
 After Part 2, the agent is capable but has gaps:
 
 - **No memory across sessions** — Part 3 adds persistence.
-- **No tracing** — Part 4 adds observability.
-- **No eval** — Part 5 adds evaluation.
-- **`bash` runs on the host** — Part 6 adds sandboxing.
+- **`bash` runs on the host** — Part 4 adds sandboxing.
+- **No tracing** — Part 5 adds observability.
+- **No eval** — Part 6 adds evaluation.
 
 ## Prompt your coding agent
 
