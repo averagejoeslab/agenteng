@@ -105,8 +105,6 @@ In Python terms: every function from here on is `async def`, and the program's e
 - **No tools.** The model can only produce text; it can't act.
 - **No loop.** Each call is independent. Nothing carries forward.
 
-Module 3 gives this call its first tool — still no loop, so what you'll build is a workflow. Module 4 adds the loop and turns it into an agent.
-
 ## Prompt your coding agent
 
 If you want your coding agent (Claude Code, Cursor, etc.) to write this for you, paste:

@@ -2,7 +2,7 @@
 
 By the end of Part 1 you had one tool and an ad-hoc `if call.name == "read"` dispatch in the TAO loop. That pattern doesn't scale. Before adding more tools, we need to understand what a tool *is* structurally, and what makes one good.
 
-This module is conceptual. Module 6 turns the principles into a registry; Module 7 uses them to build the toolkit; Module 8 centralizes the pieces that repeat.
+This module is conceptual.
 
 ## The components of a function tool
 
@@ -83,7 +83,7 @@ It reads the error, reasons about it ("oh, maybe I meant `foo.md`"), and tries a
 - **In each tool.** Every tool catches its own failures. Simple, but the same pattern repeats everywhere.
 - **In the executor.** One central function catches failures for all tools. DRY; tools stay thin.
 
-Module 3 put the catch in the tool (and Module 4's loop kept it there). Modules 6 and 7 continue that way. Module 8 pulls it up into a central executor — *the shift Part 2 is really about.*
+Module 3 put the catch in the tool, and Module 4's loop kept it there.
 
 ## Descriptions and naming
 
@@ -129,7 +129,7 @@ Pitfall: too many required fields force the model to guess values (e.g., `offset
 
 ## The tools we'll build
 
-Module 7 builds six tools following these principles:
+Six tools following these principles:
 
 | Tool | Purpose |
 |---|---|
@@ -140,7 +140,7 @@ Module 7 builds six tools following these principles:
 | `glob` | Find files by pattern |
 | `bash` | Run a shell command |
 
-Six tools cover most of what a coding agent does: examine files, change files, find things, run things. Module 6 first sets up the registry + factory that makes adding them clean; Module 7 writes them; Module 8 centralizes their error handling.
+Six tools cover most of what a coding agent does: examine files, change files, find things, run things.
 
 ---
 

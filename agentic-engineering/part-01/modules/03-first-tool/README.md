@@ -2,7 +2,7 @@
 
 This module gives the LLM its first tool — but not yet a loop. What you'll build is a **one-shot workflow**: the model sees a question, requests a single round of tool calls, your code executes them, and the model produces a final response. Two predetermined LLM calls with tool execution between them.
 
-That shape — fixed sequence of LLM calls and code steps — is a workflow per the [taxonomy](../../../../README.md#types-of-agentic-systems) at the top of the repo. The point of building it here is to make the **tool-use protocol** concrete in code before Module 4 wraps it in a loop and turns it into an agent.
+That shape — fixed sequence of LLM calls and code steps — is a workflow per the [taxonomy](../../../../README.md#types-of-agentic-systems) at the top of the repo. The point of building it here is to make the **tool-use protocol** concrete in code, separate from any loop that would wrap it.
 
 ## The tool-use protocol
 
@@ -65,9 +65,9 @@ The schema is a [JSON Schema](https://json-schema.org/) dict. Two fields matter 
 - **`properties`** — what arguments the tool takes and their types
 - **`required`** — which arguments are mandatory
 
-The tool returns a string. The `try/except` catches errors (missing file, permission denied) and returns them as strings — so the model can read the error and try again instead of crashing the program. Part 2 covers error design more thoroughly; for now, the pattern to remember is *errors are strings the model can read*.
+The tool returns a string. The `try/except` catches errors (missing file, permission denied) and returns them as strings — so the model can read the error and try again instead of crashing the program. The pattern to remember is *errors are strings the model can read*.
 
-The function is a coroutine (`async def`) even though the body doesn't currently yield — see "Why parallel tool dispatch" below.
+The function is a coroutine (`async def`) even though the body doesn't currently yield — that's so the executor can dispatch multiple tool calls in parallel.
 
 ## Why parallel tool dispatch
 
@@ -80,11 +80,11 @@ Two properties matter:
 - **Concurrency.** The runtime schedules all N operations together so their waits overlap. For one fast file read the speedup is invisible; for a `grep` across thousands of files or a `bash` command that shells out, it's the difference between "wait once" and "wait twice."
 - **Order preservation.** Results come back in the same order as the inputs. `outputs[i]` is the result of `tool_calls[i]`, which is how the `zip` below pairs each result back to its originating request.
 
-Setting this up now means every tool we add in Part 2 gets parallelism for free.
+Async tool functions get parallelism for free with this pattern.
 
 ## The two-call workflow
 
-Here's the full code. It's a fixed two-call sequence — first call to receive tool requests, second call (after executing them) to receive the final text. The user's question is hardcoded for now; Module 4 turns this into a REPL.
+Here's the full code. It's a fixed two-call sequence — first call to receive tool requests, second call (after executing them) to receive the final text. The user's question is hardcoded.
 
 ```python
 import os
@@ -198,8 +198,6 @@ What if the model's first response asks to read three files, and after seeing th
 - **No conversation.** The user's prompt is hardcoded. No interactive REPL.
 - **The agent's autonomy.** Your code decides when to stop, not the model.
 
-Module 4 wraps these two calls in a loop that keeps going until the model emits no more `tool_use` blocks. That's the move from workflow to agent — the model gains control over its own flow.
-
 ## Prompt your coding agent
 
 If you want your coding agent to write this for you, paste:
@@ -219,7 +217,7 @@ Extend main.py from the previous module by adding a single tool called "read" an
    - Make a second messages.create call (still with tools=tools) so the model can produce its final text.
 5. Print any text blocks from the final response.
 
-Do NOT add a while True loop or a REPL — that's Module 4.
+Do NOT add a while True loop or a REPL.
 ```
 
 The prompt tells your agent *what* to write. The module explains *why* — read it first.

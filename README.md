@@ -100,7 +100,7 @@ flowchart LR
 
 ### Common agent patterns
 
-Workflows are a catalog of orchestration shapes. Agents are **one pattern** — an autonomous loop — and that's the whole list. What varies between agents in practice is the environment, the toolkit, and whether one of the tools happens to be another agent (see [composition](#composition) below).
+Workflows are a catalog of orchestration shapes. Agents are **one pattern** — an autonomous loop — and that's the whole list. What varies between agents in practice is the environment, the toolkit, and whether one of the tools happens to be another agent.
 
 **Autonomous agent** — an LLM in a loop with tools, choosing what to do next based on what it observes. This is the pattern this repo builds.
 
@@ -126,7 +126,7 @@ We believe in the [Anthropic model](https://www.anthropic.com/engineering/buildi
 
 **A workflow is an LLM on rails it can't get off of.** Your code lays the track; the model fills in text at each stop.
 
-From Module 1 on, this content sticks to that strict definition: only systems with autonomous control flow count as agents. Workflows are outside the scope of what follows.
+This content sticks to that strict definition: only systems with autonomous control flow count as agents. Workflows are outside the scope of what follows.
 
 ```mermaid
 flowchart LR

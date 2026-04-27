@@ -21,7 +21,7 @@ async def write(path: str, content: str) -> str:
 Design notes:
 
 - Returns a confirmation with byte count, not the content. The model knows what it wrote.
-- Overwrites without prompting. Destructive — safety guards come in Part 4.
+- Overwrites without prompting. Destructive — handle with care.
 - Creates the file if it doesn't exist.
 
 ## edit
@@ -135,10 +135,10 @@ Design notes:
 - Captures both stdout and stderr — error output matters.
 - 30-second timeout prevents infinite hangs.
 - Runs on the host, no sandbox.
-- Sync tool bodies in general block the event loop while they run — a slow `bash` or a multi-thousand-file `grep` holds up every other concurrent call. The fix is to wrap tool bodies in `asyncio.to_thread`, which lands in Part 7 (Cost/Latency). For Part 2, sequential-but-correct is fine; file I/O is fast enough that no one notices.
+- Sync tool bodies in general block the event loop while they run — a slow `bash` or a multi-thousand-file `grep` holds up every other concurrent call. The proper fix is to wrap tool bodies in `asyncio.to_thread`. For our purposes, sequential-but-correct is fine; file I/O is fast enough that no one notices.
 
 > [!WARNING]
-> `bash` runs arbitrary commands on your machine with your permissions. In real agents you'd sandbox this (Docker, firejail, seccomp). For this curriculum — running locally in a project you control — it's fine. Part 4 (Safety and Guardrails) covers sandboxing properly.
+> `bash` runs arbitrary commands on your machine with your permissions. In real agents you'd sandbox this (Docker, firejail, seccomp). For this curriculum — running locally in a project you control — it's fine.
 
 ## Adding them to the registry
 
@@ -219,20 +219,16 @@ async def tool(...):
         return f"error: {e}"
 ```
 
-Six `try/except Exception as e: return f"error: {e}"` blocks. Same pattern, six times. If you add a seventh tool, you write it again. If you change the error format, you change it in six places.
+Six `try/except Exception as e: return f"error: {e}"` blocks of identical shape are a signal that something is misplaced. The executor (`execute_tool` from Module 6) is the natural place to catch exceptions for *all* tools — moving the try/except up there lets each tool shrink to its happy path.
 
-That's the itch Module 8 scratches. The executor — `execute_tool` from Module 6 — is the natural place to catch exceptions for *all* tools. Move the try/except up there, and each tool shrinks to its happy path.
+## What this didn't address
 
-## What's next
+The agent has a real toolkit but still has gaps:
 
-Module 8 centralizes error handling into the executor. Each tool simplifies to its core logic; the base tool contract becomes explicit.
-
-After Part 2, the agent is capable but has gaps:
-
-- **No memory across sessions** — Part 3 adds persistence.
-- **`bash` runs on the host** — Part 4 adds sandboxing.
-- **No tracing** — Part 5 adds observability.
-- **No eval** — Part 6 adds evaluation.
+- **No memory across sessions.** The conversation resets every time you restart the REPL.
+- **`bash` runs on the host with your permissions.** Real-world deployment requires sandboxing.
+- **No tracing.** Hard to debug or measure systematically without observability.
+- **No eval.** No way to verify behavior changes don't regress.
 
 ## Prompt your coding agent
 

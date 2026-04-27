@@ -70,7 +70,7 @@ def build_tool_schemas(tools):
     return schemas
 ```
 
-Every parameter is a `string` for now, and every parameter is required. That's enough for the tools Module 7 adds. When a tool needs richer types (numbers, booleans) or optional params, extend the registry entry with a type per parameter or a separate `optional` list — the factory is the only place that needs to change.
+Every parameter is a `string` for now, and every parameter is required. That's enough for the toolkit we're building. When a tool needs richer types (numbers, booleans) or optional params, extend the registry entry with a type per parameter or a separate `optional` list — the factory is the only place that needs to change.
 
 Call this once at startup and pass the result to `client.messages.create(tools=...)`.
 
@@ -91,11 +91,11 @@ Two things this does:
 - Handles unknown tool names (returns an error string).
 - Unpacks `input` as kwargs and awaits the tool's function.
 
-What it *doesn't* do: catch exceptions from the tool itself. Each tool handles its own errors with `try/except` (as `read` already does from Module 3). Module 8 will centralize that — the executor becomes the single place that wraps every call.
+What it *doesn't* do: catch exceptions from the tool itself. Each tool handles its own errors with `try/except` (as `read` already does from Module 3).
 
 ## Refactoring main.py
 
-Here's the full refactored agent — still just `read` (toolkit arrives in Module 7):
+Here's the full refactored agent — still just `read`:
 
 ```python
 import os
@@ -208,7 +208,7 @@ Three changes from Module 4:
 2. The inline `dispatch(call)` function with its `if call.name == "read"` branch is gone. Replaced by `execute_tool(call.name, call.input)` — same role, but driven by the registry instead of hand-written branches.
 3. `tools=TOOL_SCHEMAS` in the API call (computed once at startup).
 
-Error handling still lives in `read` itself — unchanged from Module 3. That stays that way through Module 7.
+Error handling still lives in `read` itself — unchanged from Module 3.
 
 ## Running it
 
@@ -216,7 +216,7 @@ Error handling still lives in `read` itself — unchanged from Module 3. That st
 uv run main.py
 ```
 
-Same behavior as Module 4. The refactor doesn't add features — it *prepares* for them. Module 7 plugs in five more tools.
+Same behavior as Module 4. The refactor doesn't add features — it *prepares* for them.
 
 ## Prompt your coding agent
 

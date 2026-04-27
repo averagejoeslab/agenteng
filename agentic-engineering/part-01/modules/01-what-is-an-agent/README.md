@@ -1,6 +1,6 @@
 # What is an agent?
 
-An agent is an LLM within a loop where it can think, act, and observe within an environment. This module breaks that down into basic components and shows what each looks like; the next three modules build them.
+An agent is an LLM within a loop where it can think, act, and observe within an environment. This module breaks that down into basic components and shows what each looks like.
 
 ## Basic components of an agent
 
@@ -15,7 +15,7 @@ An agent has three moving parts:
 An LLM call is an HTTP POST to the model provider's API. The response comes back as a list of content blocks — text, and optionally tool requests.
 
 > [!NOTE]
-> The snippets below use cooperative concurrency (Python's `async`/`await` + `asyncio.run`) without explaining the mechanics. Module 2 covers *why an agent wants this shape* — it's an agentic-engineering concern, not a Python-specific one. Read past the syntax for now.
+> The snippets below use cooperative concurrency (Python's `async`/`await` + `asyncio.run`) without explaining the mechanics. The reason an agent wants this shape is an agentic-engineering concern, not a Python-specific one — read past the syntax for now.
 
 ```python
 response = await client.messages.create(
@@ -26,7 +26,7 @@ response = await client.messages.create(
 print(response.content[0].text)
 ```
 
-One prompt in, one response out. Module 2 builds this from scratch.
+One prompt in, one response out.
 
 ## Show a TAO loop
 
@@ -60,8 +60,6 @@ while True:
     # OBSERVE: append results as the next user message
     messages.append({"role": "user", "content": list(results)})
 ```
-
-Module 4 wraps this loop around an LLM call inside a terminal REPL environment.
 
 > [!NOTE]
 > This loop is commonly known as the **ReAct loop** — after the 2022 paper [*ReAct: Synergizing Reasoning and Acting in Language Models*](https://arxiv.org/abs/2210.03629) by Yao et al. The ReAct acronym drops observation; TAO keeps it visible. (The paper itself includes observation — it's the acronym that's lossy.)
@@ -98,7 +96,7 @@ tools = [
 ]
 ```
 
-The tool returns a string. If something goes wrong, it returns the error as a string so the model can self-correct instead of crashing the program. Module 3 wires this in as a one-shot workflow; Module 4 wraps it in a loop so the model can iterate.
+The tool returns a string. If something goes wrong, it returns the error as a string so the model can self-correct instead of crashing the program.
 
 ## Putting it together
 
@@ -179,8 +177,6 @@ async def main():
 asyncio.run(main())
 ```
 
-Setup (API key, `uv`, dependencies) comes in [Module 2](../02-a-single-llm-call/); the pieces — LLM call, loop, environment, tools — are built up one at a time across Modules 2–4.
-
 ```mermaid
 flowchart LR
     Start[User input] --> Think[THINK<br/>LLM call]
@@ -210,18 +206,6 @@ User: "Find and summarize the TODOs in this codebase"
 ```
 
 The model chose every action, read every result, and decided when to stop.
-
-## What we'll build
-
-The next three modules add one piece at a time:
-
-| Module | Added | What it becomes |
-|---|---|---|
-| 2 | LLM call | A one-shot script |
-| 3 | First tool (one round) | A one-shot tool-using workflow |
-| 4 | TAO loop + terminal environment | **A minimal agent** |
-
-By Module 4 you'll have a minimal working coding agent in Python. Each module ends with something that runs.
 
 ## What you'll need
 

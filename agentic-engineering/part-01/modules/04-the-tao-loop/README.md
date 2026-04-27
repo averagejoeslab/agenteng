@@ -137,7 +137,7 @@ Three changes from Module 3:
 
 1. **The two `messages.create` calls became one inside `while True`.** The same call runs every iteration; the inner loop stops when no `tool_use` blocks come back. The number of calls is now whatever the model needs.
 2. **An outer REPL `while True`.** Reads from stdin, breaks on `/q` or `exit`. `messages` lives outside both loops so the conversation persists across user turns.
-3. **A `dispatch(call)` function** picks the tool by name and awaits it. With one tool the branching is trivial — Part 2 replaces it with a registry once we have several tools.
+3. **A `dispatch(call)` function** picks the tool by name and awaits it. With one tool the branching is trivial.
 
 `input()` stays sync. It blocks the event loop while waiting for you to type, but there's nothing else running to block — the REPL *is* the whole program. Trading it for an async input library would add complexity without buying anything.
 
@@ -186,16 +186,14 @@ Not a chatbot (has tools), not a workflow (the model directs the sequence). This
 - **Conversation persists.** `messages` lives outside the REPL loop so the model remembers earlier turns.
 - **Parallel tool calls are still free.** If the model asks for two reads at once, both run concurrently — same as Module 3.
 
-## What's next
+## What this didn't address
 
-The agent works, but it's minimal:
+The agent works but it's minimal:
 
-- **Only one tool.** It can read, but it can't write, edit, search, or run anything. A real coding agent needs a toolkit.
+- **Only one tool.** It can read, but it can't write, edit, search, or run anything.
 - **The dispatch is ad-hoc.** The `dispatch(call)` function's `if call.name == "read"` branch doesn't scale past a handful of tools.
-- **The error-return pattern is there but underspecified.** Errors come back as strings; in Part 2 we'll formalize this as the model's self-correction channel and pull the `try/except` out of every tool into a single executor.
+- **Errors are caught in the tool, not centrally.** Every new tool will repeat the same `try/except` block.
 - **No memory across sessions.** The conversation resets every time you restart the REPL.
-
-Part 2 (Tool Design) addresses the first three: a proper tool registry, dispatching executor, error-message design, and a multi-tool toolkit (`read`, `write`, `edit`, `bash`, `grep`, `glob`). Part 3 (Memory and Context) handles the fourth.
 
 ## Prompt your coding agent
 

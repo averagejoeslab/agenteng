@@ -69,11 +69,11 @@ As a language-neutral signature:
 tool: (named args) → string | any    (may throw; executor handles it)
 ```
 
-Moving a responsibility from six places into one is the core refactor. The pattern matters beyond cleanup — the executor is where **cross-cutting concerns** live, and every later Part hooks into it:
+Moving a responsibility from six places into one is the core refactor. The pattern matters beyond cleanup — the executor is where **cross-cutting concerns** live:
 
-- **Safety** (Part 4): check permissions in one place before any tool runs.
-- **Observability** (Part 5): instrument one function, not six.
-- **Cost / latency** (Part 7): wrap execution with timers once. Part 7 also replaces the sync tool bodies with `asyncio.to_thread` wrappers here, so `asyncio.gather` delivers real parallelism for blocking tools like `bash`.
+- **Safety:** check permissions in one place before any tool runs.
+- **Observability:** instrument one function, not six.
+- **Cost / latency:** wrap execution with timers once. Wrapping sync tool bodies in `asyncio.to_thread` here lets `asyncio.gather` deliver real parallelism for blocking tools like `bash`.
 
 Cross-cutting concerns are a language-agnostic concept — same pattern a middleware stack or an HTTP interceptor implements. Once the base contract exists, each new concern is a one-line addition.
 
@@ -174,19 +174,16 @@ A coding agent with six tools and a clean async executor:
 
 This is the end state of Part 2 — lives at `agents/coding-agent/`.
 
-## What's next
+## What this didn't address
 
-Part 3 (Memory and Context) tackles the remaining limitations:
+The agent has a clean tool architecture but still has gaps:
 
 - The conversation resets every time the REPL restarts.
 - The context window fills up on long sessions; nothing manages eviction.
 - Past sessions can't be recalled semantically.
-
-The executor pattern stays. Each later Part adds responsibilities to it:
-
-- Part 4 (Safety): gate tool execution on permissions.
-- Part 5 (Observability): trace every tool call through the executor.
-- Part 7 (Cost/Latency): wrap tool bodies in `asyncio.to_thread` so blocking calls (`bash`, large file I/O) don't stall the event loop — and `asyncio.gather` gives real parallelism.
+- `bash` runs on the host with no sandboxing.
+- No structured traces of tool calls or LLM interactions.
+- No way to evaluate quality systematically or guard against regression.
 
 ## Prompt your coding agent
 
