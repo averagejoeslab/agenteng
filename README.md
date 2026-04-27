@@ -20,7 +20,7 @@ Working in this discipline involves the following items:
 
 ## What are agentic systems?
 
-An agentic system is a program that coordinates LLM calls to accomplish a goal. The term **agentic system** from Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents), is an umbrella term that covers both workflows and agents.
+An agentic system is a program that coordinates LLM calls to accomplish a goal. The term comes from Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents) and serves as an umbrella over both workflows and agents.
 
 ## Types of agentic systems
 
@@ -100,7 +100,7 @@ flowchart LR
 
 ### Common agent patterns
 
-Workflows are a catalog of orchestration shapes. Agents are **one pattern** — an autonomous loop — and that's the whole list. What varies between agents in practice is the environment, the toolkit, and whether one of the tools happens to be another agent (see [composition patterns](#composition-patterns) below).
+Workflows are a catalog of orchestration shapes. Agents are **one pattern** — an autonomous loop — and that's the whole list. What varies between agents in practice is the environment, the toolkit, and whether one of the tools happens to be another agent (see [composition](#composition) below).
 
 **Autonomous agent** — an LLM in a loop with tools, choosing what to do next based on what it observes. This is the pattern this repo builds.
 
