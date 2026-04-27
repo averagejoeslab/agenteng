@@ -102,10 +102,10 @@ In Python terms: every function from here on is `async def`, and the program's e
 
 ## What's missing
 
-- **No loop.** Each call is independent. Nothing carries forward.
 - **No tools.** The model can only produce text; it can't act.
+- **No loop.** Each call is independent. Nothing carries forward.
 
-Module 3 wraps this call in the loop structure so it's ready for tools.
+Module 3 gives this call its first tool — still no loop, so what you'll build is a workflow. Module 4 adds the loop and turns it into an agent.
 
 ## Prompt your coding agent
 
@@ -127,4 +127,4 @@ The prompt tells your agent *what* to write. The module explains *why* — read 
 
 ---
 
-**Next:** [Module 3: The TAO loop](../03-the-tao-loop/)
+**Next:** [Module 3: First tool](../03-first-tool/)

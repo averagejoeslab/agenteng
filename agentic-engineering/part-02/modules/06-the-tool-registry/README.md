@@ -91,7 +91,7 @@ Two things this does:
 - Handles unknown tool names (returns an error string).
 - Unpacks `input` as kwargs and awaits the tool's function.
 
-What it *doesn't* do: catch exceptions from the tool itself. Each tool handles its own errors with `try/except` (as `read` already does from Module 4). Module 8 will centralize that — the executor becomes the single place that wraps every call.
+What it *doesn't* do: catch exceptions from the tool itself. Each tool handles its own errors with `try/except` (as `read` already does from Module 3). Module 8 will centralize that — the executor becomes the single place that wraps every call.
 
 ## Refactoring main.py
 
@@ -208,7 +208,7 @@ Three changes from Module 4:
 2. The inline `dispatch(call)` function with its `if call.name == "read"` branch is gone. Replaced by `execute_tool(call.name, call.input)` — same role, but driven by the registry instead of hand-written branches.
 3. `tools=TOOL_SCHEMAS` in the API call (computed once at startup).
 
-Error handling still lives in `read` itself — unchanged from Module 4. That stays that way through Module 7.
+Error handling still lives in `read` itself — unchanged from Module 3. That stays that way through Module 7.
 
 ## Running it
 

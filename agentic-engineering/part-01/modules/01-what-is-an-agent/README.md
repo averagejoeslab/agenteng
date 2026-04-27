@@ -61,7 +61,7 @@ while True:
     messages.append({"role": "user", "content": list(results)})
 ```
 
-Module 3 wraps this loop around an LLM call inside a terminal REPL environment.
+Module 4 wraps this loop around an LLM call inside a terminal REPL environment.
 
 > [!NOTE]
 > This loop is commonly known as the **ReAct loop** — after the 2022 paper [*ReAct: Synergizing Reasoning and Acting in Language Models*](https://arxiv.org/abs/2210.03629) by Yao et al. The ReAct acronym drops observation; TAO keeps it visible. (The paper itself includes observation — it's the acronym that's lossy.)
@@ -98,7 +98,7 @@ tools = [
 ]
 ```
 
-The tool returns a string. If something goes wrong, it returns the error as a string so the model can self-correct instead of crashing the loop. Module 4 wires this into the loop so the model can request it.
+The tool returns a string. If something goes wrong, it returns the error as a string so the model can self-correct instead of crashing the program. Module 3 wires this in as a one-shot workflow; Module 4 wraps it in a loop so the model can iterate.
 
 ## Putting it together
 
@@ -218,8 +218,8 @@ The next three modules add one piece at a time:
 | Module | Added | What it becomes |
 |---|---|---|
 | 2 | LLM call | A one-shot script |
-| 3 | TAO loop + terminal environment | An interactive REPL running the loop |
-| 4 | First tool | **A minimal agent** |
+| 3 | First tool (one round) | A one-shot tool-using workflow |
+| 4 | TAO loop + terminal environment | **A minimal agent** |
 
 By Module 4 you'll have a minimal working coding agent in Python. Each module ends with something that runs.
 

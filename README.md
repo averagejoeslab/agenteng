@@ -165,8 +165,8 @@ Define what an agent is and the three components that make it up. Build them up 
 
 1. [What is an agent?](./agentic-engineering/part-01/modules/01-what-is-an-agent/)
 2. [A single LLM call](./agentic-engineering/part-01/modules/02-a-single-llm-call/)
-3. [The TAO loop](./agentic-engineering/part-01/modules/03-the-tao-loop/)
-4. [First tool](./agentic-engineering/part-01/modules/04-first-tool/)
+3. [First tool](./agentic-engineering/part-01/modules/03-first-tool/)
+4. [The TAO loop](./agentic-engineering/part-01/modules/04-the-tao-loop/)
 
 **Reference implementation agent:** [`agents/basic-agent`](./agents/basic-agent/)
 

@@ -1,6 +1,6 @@
 # Tool design
 
-In Module 4 you added one tool with an ad-hoc `if call.name == "read"` dispatch. That pattern doesn't scale. Before adding more tools, we need to understand what a tool *is* structurally, and what makes one good.
+By the end of Part 1 you had one tool and an ad-hoc `if call.name == "read"` dispatch in the TAO loop. That pattern doesn't scale. Before adding more tools, we need to understand what a tool *is* structurally, and what makes one good.
 
 This module is conceptual. Module 6 turns the principles into a registry; Module 7 uses them to build the toolkit; Module 8 centralizes the pieces that repeat.
 
@@ -83,7 +83,7 @@ It reads the error, reasons about it ("oh, maybe I meant `foo.md`"), and tries a
 - **In each tool.** Every tool catches its own failures. Simple, but the same pattern repeats everywhere.
 - **In the executor.** One central function catches failures for all tools. DRY; tools stay thin.
 
-Module 4 put the catch in the tool. Modules 6 and 7 continue that way. Module 8 pulls it up into a central executor — *the shift Part 2 is really about.*
+Module 3 put the catch in the tool (and Module 4's loop kept it there). Modules 6 and 7 continue that way. Module 8 pulls it up into a central executor — *the shift Part 2 is really about.*
 
 ## Descriptions and naming
 
@@ -133,7 +133,7 @@ Module 7 builds six tools following these principles:
 
 | Tool | Purpose |
 |---|---|
-| `read` | Read file contents (already exists from Module 4) |
+| `read` | Read file contents (already exists from Module 3) |
 | `write` | Create or overwrite a file |
 | `edit` | Find-and-replace in a file |
 | `grep` | Search file contents for a regex |
