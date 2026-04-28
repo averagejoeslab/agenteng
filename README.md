@@ -20,11 +20,13 @@ Working in this discipline involves the following items:
 
 ## What are agentic systems?
 
-An agentic system is a program that coordinates LLM calls to accomplish a goal. The term comes from Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents) and serves as an umbrella over both workflows and agents.
+The idea of agentic systems come from cognitive science, and is used to describe systems that can act on their own, without human intervention. In modern agentic systems, this agency is provided by an LLM.
 
 ## Types of agentic systems
 
-Agentic systems come in two forms, as defined in Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents):
+In my opinion, agentic systems come in two forms: workflows and agents, as defined in Anthropic's [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents):
+
+Below are simple diagrams of the two types of agentic systems.
 
 **Workflows** — systems where LLMs and tools are orchestrated through **predefined code paths**. Your code decides the sequence of steps and the model follows.
 
@@ -42,7 +44,7 @@ flowchart LR
     A2 -->|no| A4[Done]
 ```
 
-We subscribe to Anthropic's line of thinking and taxonomy on agentic systems. The sections below zoom in on each — common workflow patterns first, then common agent patterns.
+Below are more comprehensive diagrams of the two types of agentic systems.
 
 ### Common workflow patterns
 
@@ -115,14 +117,14 @@ flowchart LR
 
 ## Composition
 
-Agents and workflows compose. You can build multi-agent systems, multi-workflow systems, or systems that mix both.
+By composing the above workflows and agent patterns, you can build multi-agent systems, multi-workflow systems, or systems that mix both.
 
 > [!NOTE]
 > **Whether to use multi-agent composition at all is a live disagreement in the field.** Anthropic embraces it ([multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system); Claude Code subagents). Cognition argues *against* it in [*Don't Build Multi-Agents*](https://cognition.ai/blog/dont-build-multi-agents), making the case for a single-threaded linear agent with shared context — citing reliability and debuggability. Cursor 2.0 takes a third path: parallel independent agents on separate Git worktrees, no supervisor. The right composition depends on whether sub-tasks share context, run in parallel, and need to surface partial state — there is no default answer.
 
 ## The Average Joes Lab stance: purist agents only
 
-We believe in the [Anthropic model](https://www.anthropic.com/engineering/building-effective-agents): **a real agent has autonomy over its own control flow.** The model decides what tool to call, what to do with the result, and when the task is done. No predetermined path.
+We believe in the [Anthropic model](https://www.anthropic.com/engineering/building-effective-agents): **a real agent has autonomy over its own control flow.** The model decides what tool to call, what to do with the result, and when the task is done.
 
 **A workflow is an LLM on rails it can't get off of.** Your code lays the track; the model fills in text at each stop.
 
