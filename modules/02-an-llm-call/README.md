@@ -76,7 +76,7 @@ The code above waits for the full response before printing anything. For a short
 
 **Streaming** sends each chunk as the model generates it. Total latency stays the same, but *time to first token* drops to near-instant. For interactive use, that's the difference between an app that feels frozen and one that feels alive.
 
-The Anthropic API supports streaming over the same Messages endpoint. The SDK exposes it as a streaming context manager. Python's `async`/`await` is the natural way to consume an async stream — the program yields control to the runtime each time it waits for the next chunk.
+The Anthropic API supports streaming over the same Messages endpoint. Most SDKs expose it as an async iterable — your program loops over text chunks as they arrive, yielding control to the runtime between chunks. Every modern language has the same shape; the example below uses Python's `async`/`await`.
 
 ## The async streaming version
 
@@ -107,13 +107,7 @@ async def main():
 asyncio.run(main())
 ```
 
-Five things to notice:
-
-1. **`AsyncAnthropic`** — the async-flavored client; same API surface, awaitable methods.
-2. **`async def main()` + `asyncio.run(main())`** — async functions can't run on their own. `asyncio.run` starts an event loop, runs the coroutine, and stops the loop when it's done.
-3. **`async with client.messages.stream(...)`** — opens a streaming response. The context manager handles connection lifecycle.
-4. **`async for text in stream.text_stream`** — yields text chunks as they arrive. The program yields control while waiting for the next chunk.
-5. **`print(..., end="", flush=True)`** — print without newline; flush so each chunk shows up immediately.
+The shape is the same as the sync call — same `model`, same `messages`, same response — except the SDK opens a streaming connection and the program loops over chunks instead of waiting for one return value. Each chunk is printed as it arrives.
 
 Run it:
 

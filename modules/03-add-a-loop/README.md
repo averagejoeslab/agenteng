@@ -195,17 +195,11 @@ flowchart LR
 > [!NOTE]
 > This is the **ReAct loop** from the 2022 paper [*ReAct: Synergizing Reasoning and Acting in Language Models*](https://arxiv.org/abs/2210.03629) by Yao et al. The ReAct acronym drops observation; TAO keeps it visible.
 
-## Async and parallel tool dispatch
+## Parallel tool dispatch
 
 The loop above runs tools one at a time. If the model asks for three file reads, the second waits for the first, the third waits for the second — even though they could run in parallel.
 
-The Anthropic SDK has an `AsyncAnthropic` client that returns coroutines. Combined with `asyncio.gather`, multiple tool calls can run concurrently.
-
-Three changes:
-
-1. Swap `Anthropic` for `AsyncAnthropic`; `await` the API call.
-2. Make the tool function `async`.
-3. Replace the per-tool loop with `asyncio.gather(*(...))`.
+The fix is **concurrent dispatch**: kick off all the tool calls at once and wait for the whole batch. Every modern language has a primitive for this — Python's `asyncio.gather`, JavaScript's `Promise.all`, Go's goroutines, Rust's `join!`. The shape is the same: switch from a synchronous client to an async one, and replace the per-tool loop with a parallel-gather.
 
 ```python
 import os
@@ -287,7 +281,7 @@ async def main():
 asyncio.run(main())
 ```
 
-`asyncio.gather` runs every coroutine concurrently and returns the results in order. For a single tool call it's the same as `await`; for many, it's the sum of work done in parallel rather than in sequence.
+For a single tool call this is no different from running serially; for many, the turn finishes in roughly the time of the slowest tool instead of the sum of all of them.
 
 ## Reference: basic-agent
 

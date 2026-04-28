@@ -43,7 +43,7 @@ def save_messages(messages: list) -> None:
 
 Two subtleties:
 
-**The Anthropic SDK returns Pydantic objects, not dicts.** `response.content` is a list of `TextBlock` / `ToolUseBlock` instances. `json.dumps` can't serialize them directly — the `default=_serialize` hook calls `.model_dump()` on anything Pydantic, which produces a plain dict. On reload, the dicts come back as dicts (not Pydantic objects). The Messages API accepts both, so this is fine.
+**The SDK returns structured response objects, not raw JSON.** They need to be converted to a serializable form on the way to disk; on reload, the plain JSON shape is fine to send back to the API. (Most language SDKs follow the same pattern — typed objects out, JSON-friendly shape in.)
 
 **Corrupt state shouldn't crash startup.** If the JSON is malformed (interrupted write, manual edit), recover gracefully: warn the user and start fresh. Losing one session is recoverable; failing to start at all is not.
 
