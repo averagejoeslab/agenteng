@@ -182,7 +182,7 @@ Grow the basic agent into a multi-tool coding agent: tool design principles, a r
 
 **Reference implementation agent:** [`agents/coding-agent`](./agents/coding-agent/)
 
-### Part 3 — Memory and Context *(coming soon)*
+### Part 3 — Memory and Context
 Persistent memory across sessions, context window as a budget, semantic recall.
 
 11. [Persistent memory](./agentic-engineering/part-03/modules/11-persistent-memory/)
