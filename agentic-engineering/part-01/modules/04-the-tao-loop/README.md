@@ -172,18 +172,13 @@ In Module 3, the control flow was your code's two-call sequence. Here, the model
 
 Not a chatbot (has tools), not a workflow (the model directs the sequence). This is an agent.
 
-## Why parallel tool dispatch matters
+## Why async in the loop
 
-Look at the ACT phase. The model can emit *multiple* `tool_use` blocks in a single response — *"read `a.py` and `b.py`"*, or with several tools, *"grep for X and read file Y and run a bash command"* — all in one go.
+Module 3 introduced parallel tool dispatch via `asyncio.gather` — when the model emits multiple `tool_use` blocks in a single response, dispatch them concurrently rather than one at a time. In Module 3's two-call workflow, the savings happened at most once.
 
-In the code above, those independent operations run sequentially. Each tool waits for the previous one to finish before starting, even though they don't depend on each other. For one fast file read the difference is invisible. For a `grep` across thousands of files or a `bash` command that shells out, it's the difference between *"wait once"* and *"wait three times."*
+The loop changes the math. The agent dispatches tools on *every iteration* of the inner `while True`, and the loop iterates many times across a multi-step task. A single user turn might fan tools out three or four times in a row. Sequential dispatch turns each fan-out's *"wait once for the slowest"* into *"wait for each in turn"* — and now the wait stacks up across the whole conversation.
 
-The pattern every language has for this: **fan out N independent operations, wait for all to finish, receive an ordered list of results.** Python calls it `asyncio.gather`. JavaScript: `Promise.all`. Go: goroutines + `sync.WaitGroup`. Rust: `futures::join_all`. The name changes; the shape doesn't.
-
-Two properties matter:
-
-- **Concurrency.** The runtime schedules all N operations together so their waits overlap.
-- **Order preservation.** Results come back in the same order as the inputs — `outputs[i]` is the result of `tool_calls[i]` — which is what lets us pair each result back to its originating tool call.
+Same `asyncio.gather` pattern from Module 3, applied inside the loop. The savings compound: every iteration that fans out N tools saves the (N−1) waits, multiplied by however many iterations the loop runs.
 
 ## Refactoring to async
 

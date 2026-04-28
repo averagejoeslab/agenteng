@@ -67,7 +67,7 @@ The schema is a [JSON Schema](https://json-schema.org/) dict. Two fields matter 
 
 The tool returns a string. The `try/except` catches errors (missing file, permission denied) and returns them as strings — so the model can read the error and try again instead of crashing the program. The pattern to remember is *errors are strings the model can read*.
 
-## The two-call workflow
+## The two-call workflow (sync)
 
 Here's the full code. It's a fixed two-call sequence — first call to receive tool requests, second call (after executing them) to receive the final text. The user's question is hardcoded.
 
@@ -150,7 +150,7 @@ Three things to notice:
 2. **Tool execution lives between the two calls.** Your code runs the tools and stitches their results into the message history.
 3. **Each `tool_use` block is executed in turn.** The `for` loop runs them sequentially and collects the `tool_result` blocks for the second call.
 
-## Running it
+Run it:
 
 ```bash
 uv run main.py
@@ -164,9 +164,115 @@ Your pyproject.toml declares a project named "agent" with Python 3.13+ and anthr
 
 (Exact phrasing varies — models are non-deterministic.)
 
+## Why parallel tool dispatch matters
+
+Look at the tool-execution `for` loop. The model can emit *multiple* `tool_use` blocks in a single response — *"read `a.py` and `b.py` and `c.py`"*, or with several tools, *"grep for X and read file Y and run a bash command"*. They're independent operations.
+
+In the sync code above, those independent operations run sequentially. Each tool waits for the previous one to finish before starting, even though they don't depend on each other. For one fast file read the difference is invisible. For a `grep` across thousands of files or a `bash` command that shells out, it's the difference between *"wait once"* and *"wait three times."*
+
+Module 2 introduced async syntax for streaming. The same syntax (without streaming this time) lets us parallelize tool dispatch — same `async`/`await` you've already seen, used for a different purpose. Async is a generic tool: streaming and parallel dispatch are two of its concrete uses.
+
+The pattern every language has for parallel dispatch: **fan out N independent operations, wait for all to finish, receive an ordered list of results.** Python calls it `asyncio.gather`. JavaScript: `Promise.all`. Go: goroutines + `sync.WaitGroup`. Rust: `futures::join_all`.
+
+Two properties matter:
+
+- **Concurrency.** The runtime schedules all N operations together so their waits overlap.
+- **Order preservation.** Results come back in the same order as the inputs — `outputs[i]` is the result of `tool_calls[i]` — which is what lets us pair each result back to its originating tool call.
+
+## The async version
+
+Switch the SDK client to `AsyncAnthropic`, make `read` and `main` async, replace the sequential `for` loop with `asyncio.gather`:
+
+```python
+import os
+import asyncio
+from anthropic import AsyncAnthropic
+from dotenv import load_dotenv
+
+load_dotenv()
+
+client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+
+# The tool
+async def read(path: str) -> str:
+    try:
+        with open(path, "r") as f:
+            return f.read()
+    except Exception as e:
+        return f"error: {e}"
+
+
+tools = [
+    {
+        "name": "read",
+        "description": "Read the contents of a file",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Path to the file to read"},
+            },
+            "required": ["path"],
+        },
+    }
+]
+
+
+async def main():
+    messages = [{"role": "user", "content": "What's in pyproject.toml?"}]
+
+    # First call: model sees the tools and may emit tool_use blocks
+    response = await client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=1024,
+        system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
+        messages=messages,
+        tools=tools,
+    )
+    messages.append({"role": "assistant", "content": response.content})
+
+    # Execute every requested tool in parallel
+    tool_calls = [b for b in response.content if b.type == "tool_use"]
+    if tool_calls:
+        outputs = await asyncio.gather(*(read(**c.input) for c in tool_calls))
+        messages.append({
+            "role": "user",
+            "content": [
+                {"type": "tool_result", "tool_use_id": c.id, "content": o}
+                for c, o in zip(tool_calls, outputs)
+            ],
+        })
+
+        # Second call: model has tool results and produces final text
+        response = await client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=1024,
+            system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
+            messages=messages,
+            tools=tools,
+        )
+
+    # Print the final text
+    for block in response.content:
+        if block.type == "text":
+            print(block.text)
+
+
+asyncio.run(main())
+```
+
+Four changes from the sync version:
+
+1. **`AsyncAnthropic` instead of `Anthropic`.** Same API; awaitable methods.
+2. **`async def read`.** The body is unchanged — just a synchronous file read. The function is async because the executor needs to be able to `await` it. There's no streaming here; the agent needs the full response before dispatching.
+3. **`async def main` + `asyncio.run(main())`.** The workflow runs inside the event loop.
+4. **`await asyncio.gather(*(read(**c.input) for c in tool_calls))`.** All tool calls fan out together; the await returns once every result is in. `outputs` is in the same order as `tool_calls`, so the `zip` pairs each result back to its originating request.
+
+The reason async appears here is different from Module 2's reason. In M2 it was streaming; here it's parallel tool dispatch. Same syntax, different motivation. Async is a tool for several distinct production needs, not a single feature.
+
 ## Why this is a workflow, not an agent
 
-Look back at the code. Your code is in charge of the sequence: call the model, run tools, call the model again, print. The whole shape is fixed in advance — the model fills in text and tool requests at each stop, but it doesn't direct the flow.
+Look back at either version of the code. Your code is in charge of the sequence: call the model, run tools, call the model again, print. The whole shape is fixed in advance — the model fills in text and tool requests at each stop, but it doesn't direct the flow.
 
 That's a workflow per the [taxonomy](../../../../README.md#types-of-agentic-systems) — predetermined code paths. The model is on rails.
 
@@ -183,8 +289,9 @@ What if the model's first response asks to read three files, and after seeing th
 If you want your coding agent to write this for you, paste:
 
 ```
-Extend main.py from the previous module by adding a single tool called "read" and the tool-use protocol — but no loop yet, just one round of tool calls.
+Extend main.py from the previous module by adding a single tool called "read" and the tool-use protocol — but no loop yet, just one round of tool calls. Build it sync first, then refactor to async for parallel tool dispatch.
 
+Step 1 — sync version:
 1. Define `def read(path: str) -> str` that opens the file at `path`, returns its contents, and catches any exception returning the error as a string.
 2. Define a `tools` list with one entry:
    - name: "read"
@@ -196,6 +303,12 @@ Extend main.py from the previous module by adding a single tool called "read" an
    - Append the tool_result blocks as a single user message.
    - Make a second messages.create call (still with tools=tools) so the model can produce its final text.
 5. Print any text blocks from the final response.
+
+Step 2 — refactor to async for parallel tool dispatch:
+1. Switch from Anthropic to AsyncAnthropic.
+2. Make read and main async; wrap the entry point in `asyncio.run(main())`.
+3. Replace the sync for-loop dispatch with `outputs = await asyncio.gather(*(read(**c.input) for c in tool_calls))`, then build tool_result blocks by zipping tool_calls and outputs.
+4. Don't change the read function's body or the tools schema.
 
 Do NOT add a while True loop or a REPL.
 ```
