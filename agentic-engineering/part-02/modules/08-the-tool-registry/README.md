@@ -1,6 +1,6 @@
 # The tool registry
 
-Module 4's agent has an `if call.name == "read"` dispatch inside an ad-hoc `dispatch(call)` function. It worked for one tool. It won't scale:
+Module 6's agent has an `if call.name == "read"` dispatch inside an ad-hoc `dispatch(call)` function. It worked for one tool. It won't scale:
 
 ```python
 # This doesn't scale:
@@ -36,13 +36,13 @@ TOOLS = {
 }
 ```
 
-Three fields per tool — matching the components from [Module 5](../05-tool-design/):
+Three fields per tool — matching the components from [Module 7](../07-tool-design/):
 
 - `fn` — the async function that does the work
 - `description` — what the model reads to pick the tool
 - `params` — a dict mapping each parameter name to a short description
 
-`params` is a dict, not a list, because Module 5's rule *"put a description on each property"* needs somewhere to put them. The key is the parameter name; the value is the text the model will read when deciding how to call the tool.
+`params` is a dict, not a list, because Module 7's rule *"put a description on each property"* needs somewhere to put them. The key is the parameter name; the value is the text the model will read when deciding how to call the tool.
 
 One structure, one source of truth. Adding a tool means adding one entry.
 
@@ -91,7 +91,7 @@ Two things this does:
 - Handles unknown tool names (returns an error string).
 - Unpacks `input` as kwargs and awaits the tool's function.
 
-What it *doesn't* do: catch exceptions from the tool itself. Each tool handles its own errors with `try/except` (as `read` already does from Module 3).
+What it *doesn't* do: catch exceptions from the tool itself. Each tool handles its own errors with `try/except` (as `read` already does from Module 4).
 
 ## Refactoring main.py
 
@@ -202,13 +202,13 @@ async def main():
 asyncio.run(main())
 ```
 
-Three changes from Module 4:
+Three changes from Module 6:
 
 1. The hand-written `tools` list literal is gone. Replaced by the `TOOLS` dict + `build_tool_schemas()`.
 2. The inline `dispatch(call)` function with its `if call.name == "read"` branch is gone. Replaced by `execute_tool(call.name, call.input)` — same role, but driven by the registry instead of hand-written branches.
 3. `tools=TOOL_SCHEMAS` in the API call (computed once at startup).
 
-Error handling still lives in `read` itself — unchanged from Module 3.
+Error handling still lives in `read` itself — unchanged from Module 4.
 
 ## Running it
 
@@ -216,7 +216,7 @@ Error handling still lives in `read` itself — unchanged from Module 3.
 uv run main.py
 ```
 
-Same behavior as Module 4. The refactor doesn't add features — it *prepares* for them.
+Same behavior as Module 6. The refactor doesn't add features — it *prepares* for them.
 
 ## Prompt your coding agent
 
@@ -236,4 +236,4 @@ The prompt tells your agent *what* to write. The module explains *why* — read 
 
 ---
 
-**Next:** [Module 7: Building the toolkit](../07-building-the-toolkit/)
+**Next:** [Module 9: Building the toolkit](../09-building-the-toolkit/)

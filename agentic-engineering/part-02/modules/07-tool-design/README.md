@@ -83,7 +83,7 @@ It reads the error, reasons about it ("oh, maybe I meant `foo.md`"), and tries a
 - **In each tool.** Every tool catches its own failures. Simple, but the same pattern repeats everywhere.
 - **In the executor.** One central function catches failures for all tools. DRY; tools stay thin.
 
-Module 3 put the catch in the tool, and Module 4's loop kept it there.
+Module 4 put the catch in the tool, and Modules 5 and 6 kept it there.
 
 ## Descriptions and naming
 
@@ -133,7 +133,7 @@ Six tools following these principles:
 
 | Tool | Purpose |
 |---|---|
-| `read` | Read file contents (already exists from Module 3) |
+| `read` | Read file contents (already exists from Module 4) |
 | `write` | Create or overwrite a file |
 | `edit` | Find-and-replace in a file |
 | `grep` | Search file contents for a regex |
@@ -144,4 +144,4 @@ Six tools cover most of what a coding agent does: examine files, change files, f
 
 ---
 
-**Next:** [Module 6: The tool registry](../06-the-tool-registry/)
+**Next:** [Module 8: The tool registry](../08-the-tool-registry/)

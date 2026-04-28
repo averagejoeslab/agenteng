@@ -1,10 +1,10 @@
 # The tool executor
 
-Six tools from Module 7. Same `try/except Exception as e: return f"error: {e}"` in every one. This module pulls that pattern out of the tools and into the executor — the one central place that wraps every tool call. Tools become thin. The executor becomes the **base tool contract**: the single definition of what happens when any tool runs.
+Six tools from Module 9. Same `try/except Exception as e: return f"error: {e}"` in every one. This module pulls that pattern out of the tools and into the executor — the one central place that wraps every tool call. Tools become thin. The executor becomes the **base tool contract**: the single definition of what happens when any tool runs.
 
 ## The pattern shift
 
-**Before (Module 7).** Every tool handles its own errors:
+**Before (Module 9).** Every tool handles its own errors:
 
 ```python
 async def read(path: str) -> str:
@@ -27,7 +27,7 @@ Six tools, each ~4 lines shorter. The `try/except` moves to one place.
 
 ## Centralizing error handling
 
-Upgrade `execute_tool` from Module 6. It gains two responsibilities:
+Upgrade `execute_tool` from Module 8. It gains two responsibilities:
 
 1. **Catch any exception** the tool raises and return it as a string.
 2. **Stringify the result** — if a tool returns something non-string (e.g., a path list, a count), convert it before sending to the API.
@@ -46,11 +46,11 @@ async def execute_tool(name: str, input: dict) -> str:
 
 Three things this does:
 
-- **Unknown tool names** — returns an error string (same as Module 6).
+- **Unknown tool names** — returns an error string (same as Module 8).
 - **Exceptions** — any tool that raises gets caught; the error becomes a string the model can read.
 - **Non-string returns** — future tools that return structured data get stringified automatically.
 
-The parallel-dispatch `asyncio.gather(*(execute_tool(...) for c in tool_calls))` at the call site is unchanged from Module 4 — gather works through the upgraded executor the same way.
+The parallel-dispatch `asyncio.gather(*(execute_tool(...) for c in tool_calls))` at the call site is unchanged from Module 6 — gather works through the upgraded executor the same way.
 
 ## The base tool contract
 
@@ -160,7 +160,7 @@ uv run coding-agent/main.py
 
 (From the `agents/` directory — shared `.env` and `.venv` live there.)
 
-Same behavior as Module 7 end state. Same prompts work. What changed is internal — the agent's code is shorter and every cross-cutting concern now has one place to live.
+Same behavior as Module 9 end state. Same prompts work. What changed is internal — the agent's code is shorter and every cross-cutting concern now has one place to live.
 
 ## What you have now
 

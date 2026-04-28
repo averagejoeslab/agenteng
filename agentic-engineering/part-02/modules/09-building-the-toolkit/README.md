@@ -1,8 +1,8 @@
 # Building the toolkit
 
-This module adds five tools to the registry from Module 6: `write`, `edit`, `grep`, `glob`, `bash`. Together with `read`, they're enough for the model to function as a real coding agent — examine files, make changes, find things, run commands.
+This module adds five tools to the registry from Module 8: `write`, `edit`, `grep`, `glob`, `bash`. Together with `read`, they're enough for the model to function as a real coding agent — examine files, make changes, find things, run commands.
 
-Each tool follows Module 5's principles: focused responsibility, errors as strings, clear name and description. All tools are `async def` so the executor can dispatch them in parallel with `asyncio.gather`. The bodies are otherwise ordinary synchronous Python — async is about *how they're scheduled*, not about the work inside.
+Each tool follows Module 7's principles: focused responsibility, errors as strings, clear name and description. All tools are `async def` so the executor can dispatch them in parallel with `asyncio.gather`. The bodies are otherwise ordinary synchronous Python — async is about *how they're scheduled*, not about the work inside.
 
 ## write
 
@@ -142,7 +142,7 @@ Design notes:
 
 ## Adding them to the registry
 
-Update the `TOOLS` dict. Each parameter carries a short description (per Module 5's advice) — the factory from Module 6 lifts those straight into the schema.
+Update the `TOOLS` dict. Each parameter carries a short description (per Module 7's advice) — the factory from Module 8 lifts those straight into the schema.
 
 ```python
 TOOLS = {
@@ -167,7 +167,7 @@ TOOLS = {
 
 Six tools. No changes needed to `build_tool_schemas()` or `execute_tool()` — the registry pattern handles them.
 
-The system prompt also loses its single-tool hint — it read *"Use the read tool when you need to examine file contents"* through Module 6; with six tools, naming them all in the prompt adds noise without helping the model. Shorten it to `"You are a helpful coding assistant."` — the schemas carry the rest.
+The system prompt also loses its single-tool hint — it read *"Use the read tool when you need to examine file contents"* through Module 8; with six tools, naming them all in the prompt adds noise without helping the model. Shorten it to `"You are a helpful coding assistant."` — the schemas carry the rest.
 
 Make sure the imports at the top of `main.py` cover everything the tools need:
 
@@ -219,7 +219,7 @@ async def tool(...):
         return f"error: {e}"
 ```
 
-Six `try/except Exception as e: return f"error: {e}"` blocks of identical shape are a signal that something is misplaced. The executor (`execute_tool` from Module 6) is the natural place to catch exceptions for *all* tools — moving the try/except up there lets each tool shrink to its happy path.
+Six `try/except Exception as e: return f"error: {e}"` blocks of identical shape are a signal that something is misplaced. The executor (`execute_tool` from Module 8) is the natural place to catch exceptions for *all* tools — moving the try/except up there lets each tool shrink to its happy path.
 
 ## What this didn't address
 
@@ -259,4 +259,4 @@ The prompt tells your agent *what* to write. The module explains *why* — read 
 
 ---
 
-**Next:** [Module 8: The tool executor](../08-the-tool-executor/)
+**Next:** [Module 10: The tool executor](../10-the-tool-executor/)

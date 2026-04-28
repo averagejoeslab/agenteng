@@ -2,12 +2,12 @@
 
 The multi-tool coding agent Part 2 produces. Same REPL + TAO loop as `basic-agent`, plus a tool registry, a six-tool toolkit (`read`, `write`, `edit`, `grep`, `glob`, `bash`), and a centralized executor that handles errors for all tools.
 
-Built on top of Part 1, refined across Modules 5–8:
+Built on top of Part 1, refined across Modules 7–10:
 
-- **[Module 5: Tool design](../../agentic-engineering/part-02/modules/05-tool-design/)** — the components of a function tool and what makes a good one
-- **[Module 6: The tool registry](../../agentic-engineering/part-02/modules/06-the-tool-registry/)** — the `TOOLS` dict + schema factory + dispatcher
-- **[Module 7: Building the toolkit](../../agentic-engineering/part-02/modules/07-building-the-toolkit/)** — implementing the six tools
-- **[Module 8: The tool executor](../../agentic-engineering/part-02/modules/08-the-tool-executor/)** — centralizing error handling in the executor; tools become thin (this agent's end state)
+- **[Module 7: Tool design](../../agentic-engineering/part-02/modules/07-tool-design/)** — the components of a function tool and what makes a good one
+- **[Module 8: The tool registry](../../agentic-engineering/part-02/modules/08-the-tool-registry/)** — the `TOOLS` dict + schema factory + dispatcher
+- **[Module 9: Building the toolkit](../../agentic-engineering/part-02/modules/09-building-the-toolkit/)** — implementing the six tools
+- **[Module 10: The tool executor](../../agentic-engineering/part-02/modules/10-the-tool-executor/)** — centralizing error handling in the executor; tools become thin (this agent's end state)
 
 ## Run it
 
@@ -42,7 +42,7 @@ The model chains tools as needed (`glob` → `read`, `grep` → `edit`, etc.) to
 
 ## Files
 
-- `main.py` — the agent (~160 lines, built across Modules 5–8)
+- `main.py` — the agent (~160 lines, built across Modules 7–10)
 
 Dependencies, venv, and `.env` live at the `agents/` level.
 
