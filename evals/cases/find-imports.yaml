@@ -1,0 +1,9 @@
+id: find-imports
+description: Agent identifies imports in basic-agent/main.py.
+input: "What does basic-agent/main.py import?"
+checks:
+  - type: contains
+    value: "anthropic"
+  - type: contains
+    value: "dotenv"
+tags: [read, multi-import]
