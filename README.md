@@ -161,7 +161,7 @@ In each case, the next action depends on what the previous action produced. The 
 ## Content
 
 ### Part 1 — The Basic Agent
-Define what an agent is and build one piece at a time, from a single LLM call to a working agent that takes autonomous action.
+Define what an agent is and build one end-to-end. Concept, single LLM call, multi-turn conversation, first tool, the TAO loop, then async with parallel tool dispatch.
 
 1. [What is an agent?](./agentic-engineering/part-01/modules/01-what-is-an-agent/)
 2. [A single LLM call](./agentic-engineering/part-01/modules/02-a-single-llm-call/)
@@ -173,7 +173,7 @@ Define what an agent is and build one piece at a time, from a single LLM call to
 **Reference implementation agent:** [`agents/basic-agent`](./agents/basic-agent/)
 
 ### Part 2 — Tool Engineering
-Grow the single-tool agent into a multi-tool system with proper tool design, a registry-based dispatcher, and centralized error handling.
+Grow the basic agent into a multi-tool coding agent: tool design principles, a registry pattern, the toolkit, and a centralized executor.
 
 7. [Tool design](./agentic-engineering/part-02/modules/07-tool-design/)
 8. [The tool registry](./agentic-engineering/part-02/modules/08-the-tool-registry/)
@@ -185,39 +185,39 @@ Grow the single-tool agent into a multi-tool system with proper tool design, a r
 ### Part 3 — Memory and Context *(coming soon)*
 Persistent memory across sessions, context window as a budget, semantic recall.
 
-11. Persistent memory
-12. Context as a budget
-13. Semantic recall
+11. [Persistent memory](./agentic-engineering/part-03/modules/11-persistent-memory/)
+12. [Context as a budget](./agentic-engineering/part-03/modules/12-context-as-a-budget/)
+13. [Semantic recall](./agentic-engineering/part-03/modules/13-semantic-recall/)
 
 ### Part 4 — Safety and Guardrails *(coming soon)*
 Sandboxing, approval gates, loop bounds, retry/backoff.
 
-14. Sandboxing
-15. Approval gates and loop bounds
+14. [Sandboxing](./agentic-engineering/part-04/modules/14-sandboxing/)
+15. [Approval gates and loop bounds](./agentic-engineering/part-04/modules/15-approval-gates-and-loop-bounds/)
 
 ### Part 5 — Observability *(coming soon)*
-Structured traces, replay, the tooling landscape.
+Structured traces of every LLM call, tool call, and state transition. Replay. Tooling landscape.
 
-16. Structured tracing
-17. Replay and observability tooling
+16. [Structured tracing](./agentic-engineering/part-05/modules/16-structured-tracing/)
+17. [Replay and observability tooling](./agentic-engineering/part-05/modules/17-replay-and-observability-tooling/)
 
 ### Part 6 — Evaluation *(coming soon)*
-Task-completion suites, LLM-as-judge, regression testing for non-deterministic systems.
+Task-completion suites, trajectory analysis, LLM-as-judge, regression testing for non-deterministic systems.
 
-18. Eval foundations
-19. Eval implementation
+18. [Eval foundations](./agentic-engineering/part-06/modules/18-eval-foundations/)
+19. [Eval implementation](./agentic-engineering/part-06/modules/19-eval-implementation/)
 
 ### Part 7 — Cost and Latency *(coming soon)*
-Caching, batching, model routing, prompt caching, parallelization.
+Caching, batching, model routing, prompt caching, async/threading for parallelism.
 
-20. Cost optimization
-21. Latency optimization
+20. [Cost optimization](./agentic-engineering/part-07/modules/20-cost-optimization/)
+21. [Latency optimization](./agentic-engineering/part-07/modules/21-latency-optimization/)
 
 ### Part 8 — Prompt and Context Tuning *(coming soon)*
-The system prompt as scaffolding, context-assembly strategy, iterative refinement.
+The system prompt as scaffolding. Iterative refinement of the full input assembly.
 
-22. Prompt design
-23. Context assembly
+22. [Prompt design](./agentic-engineering/part-08/modules/22-prompt-design/)
+23. [Context assembly](./agentic-engineering/part-08/modules/23-context-assembly/)
 
 ## License
 

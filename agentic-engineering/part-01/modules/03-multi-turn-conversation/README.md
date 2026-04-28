@@ -1,36 +1,35 @@
 # Multi-turn conversation
 
-Module 2 made one LLM call. The model saw a prompt, returned a response, and the script ended. Real interactive use needs more — the user asks something, then asks a follow-up that depends on what was just said. This module wraps the LLM call in a REPL and maintains conversation history across turns.
+Module 2 made one LLM call. This module turns that into a back-and-forth: the user types, the model replies, the user types again, and the conversation history persists so the model can refer to earlier turns. The result is a **chatbot** — interactive, stateful, but still without the ability to take any action in the world.
 
-What you'll build is a **chatbot**: terminal in, model out, repeat. No tools, no autonomous control flow. Just turn-based conversation where the model remembers what was said before.
+That distinction matters. A chatbot has the LLM and the loop (around input, not around tool requests), but no tools. By the [taxonomy](../../../../README.md#types-of-agentic-systems) at the top of the repo, that's not yet an agent.
 
-## The REPL
+## What "multi-turn" means
 
-A REPL — read, evaluate, print, loop — is the simplest environment for an interactive program. In Python it's a `while True` over `input()`:
+The Messages API is stateless. The server doesn't remember anything between calls. To carry conversation forward, you send the *full* prior history with every request — every `{"role": "user", "content": ...}` and `{"role": "assistant", "content": ...}` from the conversation, in order, plus the new user message.
 
-```python
-while True:
-    user_input = input("❯ ")
-    if user_input.lower() in ("/q", "exit"):
-        break
-    # call the model, print response
+The agent maintains a `messages` list locally:
+
+- After each user input → append `{"role": "user", "content": user_input}`
+- After each model response → append `{"role": "assistant", "content": response.content}`
+- Send the whole list with the next call
+
+That's the entire mechanism. The server is doing exactly what it did in Module 2, just with a longer `messages` array each turn.
+
+## The terminal REPL
+
+The simplest environment to host an agent is a **REPL**: read a line, evaluate, print, loop. We'll use Python's built-in `input()` for reading and `print()` for writing.
+
+```mermaid
+flowchart LR
+    Start([Start]) --> Read[Read user input]
+    Read --> Quit{/q or exit?}
+    Quit -->|yes| End([Quit])
+    Quit -->|no| Append[Append to messages]
+    Append --> Call[LLM call]
+    Call --> Print[Print response]
+    Print --> Read
 ```
-
-`/q` or `exit` lets the user end the session.
-
-## Maintaining conversation state
-
-The Anthropic Messages API is stateless — each call is independent. To give the model conversational context, you send the entire prior conversation in the `messages` array on every call.
-
-The pattern:
-
-1. User types something. Append `{"role": "user", "content": user_input}` to `messages`.
-2. Call the model with the full `messages` list.
-3. Append the model's response to `messages`.
-4. Print the text the model produced.
-5. Repeat.
-
-If the user's next question is *"what did I just ask?"*, the model can answer because the prior turn is still in `messages`.
 
 ## The code
 
@@ -67,9 +66,9 @@ while True:
 
 Three things to notice:
 
-1. **`messages` lives outside the `while True`.** That's what carries history across turns. If `messages` were reset every iteration, the model would lose all context.
-2. **One LLM call per user turn.** Read input, call model once, print, loop.
-3. **Sync call.** Same `client.messages.create(...)` pattern from Module 2 — nothing fancy yet.
+1. **`messages` lives outside the loop.** It accumulates across turns. The full history is sent every call.
+2. **Each turn appends both the user message and the model's response** — the conversation is the running list.
+3. **Sync `input()` is fine.** It blocks the program while waiting for you to type. Nothing else needs to run.
 
 ## Running it
 
@@ -82,43 +81,51 @@ A session:
 ```
 ❯ What is 2 + 2?
 4
-❯ What did I just ask?
-You asked what 2 plus 2 equals.
-❯ Add one to that.
-5
+❯ What did I just ask you?
+You asked what 2 + 2 equals.
+❯ Multiply that answer by 3.
+12
 ❯ /q
 ```
 
-The model remembers the previous turn because `messages` accumulated it.
+(Exact phrasing varies — models are non-deterministic.)
+
+The model remembers earlier turns because we send them every time. The third turn's *"that answer"* resolves to *"4"* because the prior exchange is in `messages`.
 
 ## Why this is a chatbot, not an agent
 
-Look back at the code. The model produces text; your code prints it. The model has no way to **act** — no tools, no external effects. It can answer questions from its training, but it can't read a file, run a command, or look something up.
+Look at what the loop does. It reads input, calls the model, prints the response. The model produces text — nothing more. There's no way for it to look at a file, run a command, or take any action. It can talk; it can't act.
 
-A chatbot per the [taxonomy](../../../../README.md#types-of-agentic-systems) sits outside the agent/workflow distinction entirely — it doesn't even have tools. It's an LLM in a loop with conversation memory.
+That's a **chatbot**. The loop here is around *input*, not around the model's autonomous decisions. The model isn't choosing whether to keep going — your code is, by reading another line of input.
+
+By the [agent definition](../../../../README.md#types-of-agentic-systems) — *"systems where LLMs dynamically direct their own path through the control flow"* — this isn't one yet. The model has no control flow to direct.
 
 ## What's missing
 
-- **No tools.** The model can talk; it can't act.
-- **No autonomy over control flow.** Every turn is exactly one LLM call. No iteration, no decision about whether to call another tool.
+- **No tools.** The model can only produce text. It has no way to look up information, examine files, or take any action in the world.
+- **No autonomous control flow.** The loop's exit condition is the user typing `/q`, not the model deciding it's done.
+- **No memory across sessions.** The `messages` list lives in memory; the next time you start the script, the conversation starts over.
 
 ## Prompt your coding agent
 
 If you want your coding agent to write this for you, paste:
 
 ```
-Extend main.py from the previous module to wrap the LLM call in a multi-turn REPL chatbot.
+Extend main.py from the previous module to support multi-turn conversation in a terminal REPL.
 
-1. Replace the single hardcoded message with a `while True` REPL:
+1. Replace the single hardcoded LLM call with a `while True` loop:
    - Read user input with `input("❯ ")`
-   - Break if "/q" or "exit"
-   - Otherwise append it as a user message
-2. Maintain a `messages` list outside the loop so conversation history persists across turns.
-3. After each LLM call:
-   - Append the assistant's response to messages
-   - Print any text blocks the model produced
-4. Use a system prompt of "You are a helpful assistant."
-5. Keep it sync — no async, no tools, no inner loop.
+   - Break if input is "/q" or "exit"
+   - Otherwise append it as a user message to a persistent `messages` list
+
+2. Inside each iteration:
+   - Call client.messages.create with the full `messages` history
+   - Append the response to messages
+   - Print each text block from the response
+
+3. Initialize `messages = []` outside the loop so it accumulates across turns.
+
+Use the sync Anthropic client. No tools yet — the model can only respond with text.
 ```
 
 The prompt tells your agent *what* to write. The module explains *why* — read it first.

@@ -1,8 +1,10 @@
 # First tool
 
-Module 3 was a chatbot — the model could talk but couldn't act. This module gives it its first tool. The model emits a `tool_use` block; your code dispatches the tool; the result goes back to the model; the model produces a final response.
+Module 3 produced a chatbot. The model can answer from its training data, refer to earlier turns, and write text — but it can't look up anything outside the conversation. This module gives the model its first **tool**: a way to act on the environment.
 
-What you'll build: the chatbot REPL from Module 3, plus one round of tool dispatch per user turn. Each user prompt triggers up to two LLM calls — one to potentially request tools, one (after dispatch) to produce final text. Per the [taxonomy](../../../../README.md#types-of-agentic-systems), that round of dispatch is a workflow shape inside the chat: your code controls the sequence (call → dispatch → call → print), the model fills in tool requests and text.
+The tool we're adding is `read`: read the contents of a file. With it the model can examine actual files instead of guessing about them.
+
+What you'll build is a **one-shot workflow** at first: the model sees a question, requests a single round of tool calls, your code executes them, and the model produces a final response. Two predetermined LLM calls with tool execution between them. That shape — fixed sequence of LLM calls and code steps — is a workflow per the [taxonomy](../../../../README.md#types-of-agentic-systems). The point of building it here is to make the **tool-use protocol** concrete in code, separate from any loop that would wrap it.
 
 ## The tool-use protocol
 
@@ -14,7 +16,7 @@ When an LLM has tools available, it can emit `tool_use` blocks in its response. 
 
 Your code runs the tool with those arguments and feeds the result back as a `tool_result` block, matched by `tool_use_id`. The model then produces its next message.
 
-A single response can contain **multiple** `tool_use` blocks. The model can ask to read two files at once, or run three independent commands. They're independent — each one's result feeds back to the model on the same follow-up call.
+A single response can contain **multiple** `tool_use` blocks. The model can ask to read two files at once, or run three independent commands. They're independent — no reason to run them sequentially.
 
 ```mermaid
 sequenceDiagram
@@ -67,9 +69,9 @@ The schema is a [JSON Schema](https://json-schema.org/) dict. Two fields matter 
 
 The tool returns a string. The `try/except` catches errors (missing file, permission denied) and returns them as strings — so the model can read the error and try again instead of crashing the program. The pattern to remember is *errors are strings the model can read*.
 
-## The code
+## The two-call workflow
 
-Extend Module 3's chatbot with tool definition and one round of dispatch per turn:
+Here's the full code. It's a fixed two-call sequence — first call to receive tool requests, second call (after executing them) to receive the final text. The user's question is hardcoded for now.
 
 ```python
 import os
@@ -105,16 +107,31 @@ tools = [
 ]
 
 
-messages = []
+messages = [{"role": "user", "content": "What's in pyproject.toml?"}]
 
-while True:
-    user_input = input("❯ ")
-    if user_input.lower() in ("/q", "exit"):
-        break
+# First call: model sees the tools and may emit tool_use blocks
+response = client.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
+    messages=messages,
+    tools=tools,
+)
+messages.append({"role": "assistant", "content": response.content})
 
-    messages.append({"role": "user", "content": user_input})
+# Execute every requested tool
+tool_calls = [b for b in response.content if b.type == "tool_use"]
+if tool_calls:
+    results = []
+    for c in tool_calls:
+        results.append({
+            "type": "tool_result",
+            "tool_use_id": c.id,
+            "content": read(**c.input),
+        })
+    messages.append({"role": "user", "content": results})
 
-    # First call: model sees the tools and may emit tool_use blocks
+    # Second call: model has tool results and produces final text
     response = client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=1024,
@@ -122,41 +139,18 @@ while True:
         messages=messages,
         tools=tools,
     )
-    messages.append({"role": "assistant", "content": response.content})
 
-    # If the model requested tools, dispatch them and get a follow-up response
-    tool_calls = [b for b in response.content if b.type == "tool_use"]
-    if tool_calls:
-        results = []
-        for c in tool_calls:
-            results.append({
-                "type": "tool_result",
-                "tool_use_id": c.id,
-                "content": read(**c.input),
-            })
-        messages.append({"role": "user", "content": results})
-
-        # Second call: model has tool results, produces final text
-        response = client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=1024,
-            system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
-            messages=messages,
-            tools=tools,
-        )
-        messages.append({"role": "assistant", "content": response.content})
-
-    # Print the final text from the model
-    for block in response.content:
-        if block.type == "text":
-            print(block.text)
+# Print the final text
+for block in response.content:
+    if block.type == "text":
+        print(block.text)
 ```
 
 Three things to notice:
 
-1. **Up to two `messages.create` calls per user turn.** First call may emit `tool_use`; second call (after dispatch) emits final text. If no `tool_use`, we skip the second call.
-2. **Tool execution lives between the two calls.** Your code runs the tool and stitches the result into `messages`.
-3. **Each `tool_use` block is dispatched in turn.** A `for` loop runs them sequentially and collects `tool_result` blocks for the second call.
+1. **Two `messages.create` calls in fixed order.** Your code decides when each call happens. The model isn't choosing whether to keep going.
+2. **Tool execution lives between the two calls.** Your code runs the tools and stitches their results into the message history.
+3. **Each `tool_use` block is executed in turn.** The `for` loop runs them sequentially and collects the `tool_result` blocks for the second call.
 
 ## Running it
 
@@ -164,53 +158,48 @@ Three things to notice:
 uv run main.py
 ```
 
-A session (run from your project directory so the relative path works):
+A run (from your project directory so the relative path works):
 
 ```
-❯ What's in pyproject.toml?
 Your pyproject.toml declares a project named "agent" with Python 3.13+ and anthropic and python-dotenv as dependencies.
-❯ Does main.py import python-dotenv?
-Yes — main.py imports load_dotenv from dotenv.
-❯ /q
 ```
 
 (Exact phrasing varies — models are non-deterministic.)
 
-## Why this is a workflow
+## Why this is a workflow, not an agent
 
-Per the [taxonomy](../../../../README.md#types-of-agentic-systems), a workflow is *"systems where LLMs and tools are orchestrated through predefined code paths."*
+Look back at the code. Your code is in charge of the sequence: call the model, run tools, call the model again, print. The whole shape is fixed in advance — the model fills in text and tool requests at each stop, but it doesn't direct the flow.
 
-Within each user turn, the code path is fixed: call model → dispatch tools (once, if requested) → call model → print. The model fills in tool requests and text, but the *sequence* is your code's. The model can't dispatch tools twice in a row within one turn — your code only allows one round.
+That's a workflow per the [taxonomy](../../../../README.md#types-of-agentic-systems) — predetermined code paths. The model is on rails.
 
-What if the second response contains another `tool_use` block? It's ignored — the code just prints the text. This is a real limitation: the model can't do multi-step tool work in a single turn. If it needs to read a file and then use that information to decide which file to read next, it has to wait for the user to prompt again.
+What if the model's first response asks to read three files, and after seeing them it decides it needs a fourth? In this code, that fourth read can never happen — the second `messages.create` call is the last thing your code does. The model can't change its mind.
 
 ## What's missing
 
-- **No multi-step tool use within a turn.** If the model needs information from one tool to decide what to do next, it can't act on that decision in the same user turn.
-- **Tool execution is sequential.** Multiple `tool_use` blocks in one round run one after another, even though they're independent.
-- **The agent's autonomy.** Your code decides when to stop dispatching tools (after one round). The model doesn't.
+- **No iteration.** One round of tool use, then done. The model can't react to what it sees by calling more tools.
+- **No conversation.** The user's prompt is hardcoded. The REPL from Module 3 is gone.
+- **The agent's autonomy.** Your code decides when to stop, not the model.
 
 ## Prompt your coding agent
 
 If you want your coding agent to write this for you, paste:
 
 ```
-Extend main.py from the previous module by adding a single tool called "read" and the tool-use protocol — but only one round of tool dispatch per user turn (no inner loop).
+Extend main.py from the previous module by adding a single tool called "read" and the tool-use protocol — but no loop yet, just one round of tool calls.
 
 1. Define `def read(path: str) -> str` that opens the file at `path`, returns its contents, and catches any exception returning the error as a string.
 2. Define a `tools` list with one entry:
    - name: "read"
    - description: "Read the contents of a file"
    - input_schema: JSON Schema dict with property "path" (string with a short description), required
-3. Inside the existing REPL `while True` from the previous module:
-   - After each user input, call `messages.create(...)` with `tools=tools`. Append the response to messages.
-   - Collect tool_use blocks. If any:
-     - Run each in turn with a `for` loop, collecting tool_result blocks (matching tool_use_id, content=read(**c.input)).
-     - Append the tool_result blocks as a single user message.
-     - Make a second messages.create call (still with tools=tools) so the model can produce its final text.
-   - Print any text blocks from the final response.
+3. Replace the REPL from the previous module with a hardcoded user message (e.g., "What's in pyproject.toml?"). Make the first messages.create call with tools=tools.
+4. Append the assistant's response to messages, then collect tool_use blocks. If any:
+   - Run each tool in turn with a `for` loop, collecting tool_result blocks (matching tool_use_id, content=read(**c.input)).
+   - Append the tool_result blocks as a single user message.
+   - Make a second messages.create call (still with tools=tools) so the model can produce its final text.
+5. Print any text blocks from the final response.
 
-Do NOT add an inner while True loop — within each user turn, dispatch happens at most once.
+Do not add a while True loop or restore the REPL — that comes next.
 ```
 
 The prompt tells your agent *what* to write. The module explains *why* — read it first.

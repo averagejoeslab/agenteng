@@ -1,13 +1,14 @@
 # Async and parallel tool dispatch
 
-Module 5 produced a working agent: REPL + TAO loop + one tool, all sync. The agent works correctly. This module refactors it to async — not because sync is wrong, but because there's a specific situation where sync wastes time.
+Module 5 produced a working sync agent with one tool. The REPL reads input, the TAO loop iterates as the model requests tools, the conversation flows. It's correct. It's also slower than it needs to be when the model fans out tool calls.
 
-## The problem
+This module addresses that limitation with a refactor to async.
 
-Look at the ACT phase from Module 5:
+## What's slow about the sync agent
+
+Look at Module 5's ACT phase:
 
 ```python
-# ACT: execute each requested tool
 results = []
 for c in tool_calls:
     results.append({
@@ -17,32 +18,42 @@ for c in tool_calls:
     })
 ```
 
-The model can emit *multiple* `tool_use` blocks in a single response — *"read `a.py` and `b.py` and `c.py`"*, or with several tools, *"grep for X and read file Y and run a bash command"*. They're independent operations.
+The `for` loop runs each tool call in turn. If the model emits a single `tool_use` block, that's one tool call — no problem, sequential is fine.
 
-In the sync code above, those independent operations run sequentially. Each tool waits for the previous one to finish before starting, even though they don't depend on each other. For one fast file read the difference is invisible. For a `grep` across thousands of files or a `bash` command that shells out, it's the difference between *"wait once"* and *"wait three times."*
+But the model can emit **multiple** `tool_use` blocks in a single response. *"Read `a.py` and `b.py` and `c.py`"* is one response, three tool calls. Or with several tools: *"grep for X, read file Y, run a bash command Z"* — three independent operations the model wants to do at once.
 
-The agent loop multiplies the cost. The TAO loop iterates many times across a multi-step task; each iteration may fan tools out. Sequential dispatch in a loop turns small per-iteration savings into significant cumulative wall time.
+In sync code those operations run one after another. Each waits for the previous to finish, even though they don't depend on each other. For one fast file read the difference is invisible. For a `grep` across thousands of files or a `bash` command that shells out, it's the difference between *"wait once for the slowest"* and *"wait for each in turn."*
 
-## The pattern
+The agent loop multiplies this cost. Across many iterations of a multi-step task, the wasted waits stack up.
 
-The pattern every language has for this: **fan out N independent operations, wait for all to finish, receive an ordered list of results.** Python calls it `asyncio.gather`. JavaScript: `Promise.all`. Go: goroutines + `sync.WaitGroup`. Rust: `futures::join_all`. The name changes; the shape doesn't.
+## The pattern: fan out, wait for all, ordered results
 
-Two properties matter:
+What we want: dispatch every requested tool concurrently, wait for all of them to finish, get an ordered list of results back. Every mainstream language has a primitive for this:
+
+- **Python:** `asyncio.gather`
+- **JavaScript:** `Promise.all`
+- **Go:** goroutines + `sync.WaitGroup`
+- **Rust:** `futures::join_all`
+
+The name changes; the shape doesn't. Two properties matter:
 
 - **Concurrency.** The runtime schedules all N operations together so their waits overlap.
 - **Order preservation.** Results come back in the same order as the inputs — `outputs[i]` is the result of `tool_calls[i]` — which is what lets us pair each result back to its originating tool call.
 
-## Cooperative concurrency
-
-Python's `async`/`await` lets a single thread suspend a pending operation and run another. While one tool is waiting on disk or shelling out, others can be in flight simultaneously. The runtime schedules them.
-
-This is **cooperative** because tasks yield to the runtime voluntarily (at `await` points). Compare to threading, where the OS preempts threads. For I/O-bound work — which is what tool execution mostly is — cooperative concurrency on a single thread is simpler and cheaper than threads.
-
-Other languages have the same idea under different names: JavaScript's `Promise`, Go's goroutines + channels, Rust's `Future`s. Same shape, different syntax.
+> [!NOTE]
+> Module 2 introduced async for streaming — same `async`/`await` syntax, different motivation. Async is a generic primitive: streaming and parallel dispatch are two distinct uses.
 
 ## Refactoring to async
 
-Switch the SDK client to `AsyncAnthropic`, wrap `main` in a coroutine, make `read` and `dispatch` async, and replace the sequential `for` loop with `asyncio.gather`:
+The diff is small but each piece matters:
+
+1. **`Anthropic` → `AsyncAnthropic`.** The async-flavored client; same API, awaitable methods.
+2. **`def read` → `async def read`.** Tool functions become coroutines so the executor can `await` them. The body stays synchronous file I/O — the async-ness is about *scheduling*, not the work inside.
+3. **`def dispatch` → `async def dispatch`.** Routes by name, awaits the chosen tool.
+4. **Wrap the script body in `async def main()`** and start it with `asyncio.run(main())`.
+5. **Replace the sync `for` loop with `await asyncio.gather(...)`.** All requested tools fan out concurrently.
+
+## The full async code
 
 ```python
 import os
@@ -55,7 +66,7 @@ load_dotenv()
 client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 
-# The tool (async, body unchanged)
+# The tool
 async def read(path: str) -> str:
     try:
         with open(path, "r") as f:
@@ -89,13 +100,16 @@ async def main():
     messages = []
 
     while True:
+        # The terminal environment: read a user prompt
         user_input = input("❯ ")
         if user_input.lower() in ("/q", "exit"):
             break
 
         messages.append({"role": "user", "content": user_input})
 
+        # The TAO loop: iterate until the model stops requesting tools
         while True:
+            # THINK: call the model
             response = await client.messages.create(
                 model="claude-sonnet-4-5",
                 max_tokens=1024,
@@ -105,10 +119,12 @@ async def main():
             )
             messages.append({"role": "assistant", "content": response.content})
 
+            # Display any text the model produced
             for block in response.content:
                 if block.type == "text":
                     print(block.text)
 
+            # If the model didn't ask for tools, we're done with this turn
             tool_calls = [b for b in response.content if b.type == "tool_use"]
             if not tool_calls:
                 break
@@ -116,6 +132,7 @@ async def main():
             # ACT: execute every requested tool in parallel
             outputs = await asyncio.gather(*(dispatch(c) for c in tool_calls))
 
+            # OBSERVE: append results as the next user message
             messages.append({
                 "role": "user",
                 "content": [
@@ -128,62 +145,81 @@ async def main():
 asyncio.run(main())
 ```
 
-Five changes from the sync version:
+## What `asyncio.gather` did
 
-1. **`AsyncAnthropic` instead of `Anthropic`.** Same API surface, awaitable methods.
-2. **`async def read`.** Body unchanged — still a synchronous file read. The function is `async` because the executor needs to be able to `await` it. Async-ness is about scheduling, not about the work inside.
-3. **`async def dispatch`.** Awaits the tool function.
-4. **`async def main` + `asyncio.run(main())`.** The whole REPL runs inside the event loop.
-5. **`await asyncio.gather(*(dispatch(c) for c in tool_calls))`.** The sequential `for` is gone. All tool calls fan out together; the await returns once every result is in. The `zip` pairs each output back to its `tool_call`.
+The sync version:
+
+```python
+results = []
+for c in tool_calls:
+    results.append({"type": "tool_result", "tool_use_id": c.id, "content": dispatch(c)})
+```
+
+The async version:
+
+```python
+outputs = await asyncio.gather(*(dispatch(c) for c in tool_calls))
+messages.append({
+    "role": "user",
+    "content": [
+        {"type": "tool_result", "tool_use_id": c.id, "content": o}
+        for c, o in zip(tool_calls, outputs)
+    ],
+})
+```
+
+`asyncio.gather` takes the list of coroutines and runs them concurrently. The `await` returns once every result is in. `outputs` is in the same order as the input — that's why we can `zip` it with `tool_calls` to pair each result back to its originating request.
 
 `input()` stays sync. It blocks the event loop while waiting for you to type, but there's nothing else running to block — the REPL is the whole program.
 
+## Why this isn't streaming
+
+Streaming (Module 2) gives the user tokens as they're generated. It only works when you can display partial output as it arrives.
+
+The agent here can't do that. Before it can show the user any answer, it has to know whether the response includes `tool_use` blocks. If there are tool calls to dispatch, the agent isn't done — it can't print a "final answer" yet. It has to wait for the whole response, dispatch tools, send results back, and call the model again.
+
+Streaming applies when the response is the final output. In an agent loop, intermediate responses aren't the final output — they're decisions about what to do next. So we wait for the full response and use async for parallel dispatch instead.
+
+## Running it
+
+```bash
+uv run main.py
+```
+
+Same conversation as Module 5. The behavior is identical for any single-tool turn (one tool, no parallelism to exploit). The difference shows when the model fans out — and once you have multiple tools (Part 2), it does that often.
+
 ## What just changed
 
-- **Multiple tool calls per response now run concurrently.** When the model asks for two reads at once, both run together. With one fast tool, you won't notice; once tools include slow operations, you will.
-- **The call stack is now async all the way up.** `main` is a coroutine; the LLM call is awaited; tool functions are awaited. This is the production shape — every later concern (streaming, concurrent sessions, advanced parallelization) attaches to async.
-- **The agent's behavior is otherwise unchanged.** Same loop, same dispatch logic, same end-of-turn condition. The refactor is mechanical; user experience is identical for simple cases.
+- **The agent is async.** All function definitions and the entry point use `async`/`await`.
+- **Multiple tool calls run concurrently.** When the model emits two or more `tool_use` blocks in one response, they fan out via `asyncio.gather` instead of running in a sequential `for` loop.
+- **Order preservation lets us pair results to requests.** `outputs[i]` corresponds to `tool_calls[i]`.
+- **Conversation behavior is unchanged.** Same REPL, same TAO loop, same model interactions — the agent acts the same; it just doesn't waste wall time on independent tool calls.
 
-## Async beyond parallel dispatch
-
-Parallel tool dispatch is the most concrete reason for async in an agent, but it's not the only one:
-
-- **Streaming.** The Anthropic SDK supports streaming responses (`async with client.messages.stream(...)`) — useful when the user wants to see tokens land in real time. The agent we built doesn't stream because it needs the full response to detect `tool_use` blocks before dispatching, but streaming is a reason async exists.
-- **Concurrent sessions.** A server hosting an agent endpoint can handle multiple users on one process by interleaving their async tasks.
-- **Async-only SDK features.** Some SDK methods are async-only.
-
-These don't apply to a single-user CLI agent, but they're production reasons async is the default shape for LLM application code.
+This is the **end state of Part 1** — the basic-agent.
 
 ## What this didn't address
 
-- **Sync tool bodies still block the event loop.** `read`'s body is `with open(path) as f: return f.read()` — when that runs, no other coroutines progress. For fast file I/O it's imperceptible. For a slow `bash` command it matters; the proper fix is `asyncio.to_thread(...)` to offload blocking work to a thread pool. That's a cost/latency optimization, not a correctness issue here.
+- **Only one tool.** It can read, but it can't write, edit, search, or run anything.
+- **Ad-hoc dispatch.** The `dispatch(call)` function's `if call.name == "read"` branch doesn't scale past a handful of tools.
+- **Errors caught in the tool.** Every new tool will repeat the same `try/except` block.
+- **No memory across sessions.** The conversation resets every time you restart the REPL.
 
 ## Prompt your coding agent
 
 If you want your coding agent to write this for you, paste:
 
 ```
-Refactor main.py from the previous module from sync to async, so multiple tool calls per response run in parallel.
+Refactor main.py from the previous module to async with parallel tool dispatch.
 
-1. Switch from Anthropic to AsyncAnthropic.
-2. Make read, dispatch, and main async (`async def`).
-3. Wrap the entry point with `asyncio.run(main())`.
-4. Replace the sync `for` loop dispatch:
-       results = []
-       for c in tool_calls:
-           results.append({...})
-   with parallel dispatch:
-       outputs = await asyncio.gather(*(dispatch(c) for c in tool_calls))
-       messages.append({
-           "role": "user",
-           "content": [
-               {"type": "tool_result", "tool_use_id": c.id, "content": o}
-               for c, o in zip(tool_calls, outputs)
-           ],
-       })
-5. Await the messages.create call.
-6. Don't change the read function's body or the tools schema — they carry over from the previous module.
-7. input() stays sync.
+1. Switch from `Anthropic` to `AsyncAnthropic`.
+2. Make `read`, `dispatch`, and `main` async; wrap the entry point in `asyncio.run(main())`.
+3. Inside the inner TAO loop, replace the sequential `for` over tool_calls with parallel dispatch:
+   - `outputs = await asyncio.gather(*(dispatch(c) for c in tool_calls))`
+   - Build the tool_result blocks by zipping tool_calls with outputs (tool_use_id from c, content from o).
+4. `await client.messages.create(...)` on the API call.
+5. `input()` stays synchronous — the REPL has nothing else to do while waiting.
+
+Don't change the tool body or the tools schema — only the scheduling model changes.
 ```
 
 The prompt tells your agent *what* to write. The module explains *why* — read it first.

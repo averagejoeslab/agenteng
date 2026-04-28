@@ -1,13 +1,13 @@
 # What is an agent?
 
-An agent is an LLM within a loop where it can think, act, and observe within an environment. This module breaks that down into basic components and shows what each looks like.
+An agent is an LLM in a loop with tools, where the LLM dynamically directs its own path through the control flow. This module breaks that down into basic components and shows what each looks like.
 
 ## Basic components of an agent
 
 An agent has three moving parts:
 
 1. **An LLM call** — the reasoning engine
-2. **A TAO loop** (Think, Act, Observe) — the structure that turns single calls into sustained work
+2. **A loop** (Think, Act, Observe) — the structure that turns single calls into sustained work
 3. **Tools** — the agent's means of acting on its environment
 
 ## Show an LLM call

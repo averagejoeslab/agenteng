@@ -208,7 +208,7 @@ The TAO loop iterates multiple times per turn: the model chains tools (`glob` �
 
 ## The repetition problem
 
-Look at the six tools you just wrote. Every one of them has this pattern:
+Look at the six tools. Every one of them has this pattern:
 
 ```python
 async def tool(...):
@@ -219,15 +219,16 @@ async def tool(...):
         return f"error: {e}"
 ```
 
-Six `try/except Exception as e: return f"error: {e}"` blocks of identical shape are a signal that something is misplaced. The executor (`execute_tool` from Module 8) is the natural place to catch exceptions for *all* tools — moving the try/except up there lets each tool shrink to its happy path.
+Six `try/except Exception as e: return f"error: {e}"` blocks of identical shape. Same pattern, six times. If you add a seventh tool, you write it again. If you change the error format, you change it in six places. That's a signal that something is misplaced. The executor (`execute_tool` from Module 8) is the natural place to catch exceptions for *all* tools — moving the try/except up there lets each tool shrink to its happy path.
 
 ## What this didn't address
 
 The agent has a real toolkit but still has gaps:
 
-- **No memory across sessions.** The conversation resets every time you restart the REPL.
+- **Six identical try/except blocks** clutter the tool functions.
 - **`bash` runs on the host with your permissions.** Real-world deployment requires sandboxing.
-- **No tracing.** Hard to debug or measure systematically without observability.
+- **No memory across sessions.** The conversation resets every time you restart the REPL.
+- **No tracing.** Hard to debug or measure systematically.
 - **No eval.** No way to verify behavior changes don't regress.
 
 ## Prompt your coding agent

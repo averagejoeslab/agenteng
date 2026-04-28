@@ -210,4 +210,4 @@ The prompt tells your agent *what* to write. The module explains *why* — read 
 
 ---
 
-**Next:** Part 3 — Memory and Context *(coming soon)*
+**Next:** [Module 11: Persistent memory](../../../part-03/modules/11-persistent-memory/)

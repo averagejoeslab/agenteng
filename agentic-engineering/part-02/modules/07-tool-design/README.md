@@ -1,6 +1,6 @@
 # Tool design
 
-By the end of Part 1 you had one tool and an ad-hoc `if call.name == "read"` dispatch in the TAO loop. That pattern doesn't scale. Before adding more tools, we need to understand what a tool *is* structurally, and what makes one good.
+By the end of Part 1 you had a working agent with one tool and an ad-hoc `if call.name == "read"` dispatch. That pattern doesn't scale. Before adding more tools, we need to understand what a tool *is* structurally, and what makes one good.
 
 This module is conceptual.
 
@@ -83,7 +83,7 @@ It reads the error, reasons about it ("oh, maybe I meant `foo.md`"), and tries a
 - **In each tool.** Every tool catches its own failures. Simple, but the same pattern repeats everywhere.
 - **In the executor.** One central function catches failures for all tools. DRY; tools stay thin.
 
-Module 4 put the catch in the tool, and Modules 5 and 6 kept it there.
+Module 4 put the catch in the tool, and Module 5 kept it there. Whether to centralize is a question we'll come back to once there are more tools to compare.
 
 ## Descriptions and naming
 
