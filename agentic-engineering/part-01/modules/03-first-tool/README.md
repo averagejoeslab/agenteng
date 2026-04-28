@@ -35,10 +35,10 @@ sequenceDiagram
 
 ## Defining a tool
 
-A tool is two pieces, same as Module 1: an **implementation** and a **schema**. The implementation is a function in whatever language you're using; the schema is JSON Schema (LLM industry standard). In our Python agent the implementation is an `async def` and the schema is a plain dict:
+A tool is two pieces, same as Module 1: an **implementation** and a **schema**. The implementation is a function in whatever language you're using; the schema is JSON Schema (LLM industry standard). Both sides in Python:
 
 ```python
-async def read(path: str) -> str:
+def read(path: str) -> str:
     try:
         with open(path, "r") as f:
             return f.read()
@@ -67,38 +67,22 @@ The schema is a [JSON Schema](https://json-schema.org/) dict. Two fields matter 
 
 The tool returns a string. The `try/except` catches errors (missing file, permission denied) and returns them as strings — so the model can read the error and try again instead of crashing the program. The pattern to remember is *errors are strings the model can read*.
 
-The function is a coroutine (`async def`) even though the body doesn't currently yield — that's so the executor can dispatch multiple tool calls in parallel.
-
-## Why parallel tool dispatch
-
-The model might emit `[tool_use(read, "a.py"), tool_use(read, "b.py")]` in a single response. The two reads don't depend on each other — running them one after the other wastes time.
-
-The pattern every language has for this: **fan out N independent operations, wait for all to finish, receive an ordered list of results.** Python calls it `asyncio.gather`. JavaScript calls it `Promise.all`. Go uses goroutines with a `sync.WaitGroup`. Rust has `futures::join_all`. The name changes; the shape doesn't.
-
-Two properties matter:
-
-- **Concurrency.** The runtime schedules all N operations together so their waits overlap. For one fast file read the speedup is invisible; for a `grep` across thousands of files or a `bash` command that shells out, it's the difference between "wait once" and "wait twice."
-- **Order preservation.** Results come back in the same order as the inputs. `outputs[i]` is the result of `tool_calls[i]`, which is how the `zip` below pairs each result back to its originating request.
-
-Async tool functions get parallelism for free with this pattern.
-
 ## The two-call workflow
 
 Here's the full code. It's a fixed two-call sequence — first call to receive tool requests, second call (after executing them) to receive the final text. The user's question is hardcoded.
 
 ```python
 import os
-import asyncio
-from anthropic import AsyncAnthropic
+from anthropic import Anthropic
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 
 # The tool
-async def read(path: str) -> str:
+def read(path: str) -> str:
     try:
         with open(path, "r") as f:
             return f.read()
@@ -121,54 +105,50 @@ tools = [
 ]
 
 
-async def main():
-    messages = [{"role": "user", "content": "What's in pyproject.toml?"}]
+messages = [{"role": "user", "content": "What's in pyproject.toml?"}]
 
-    # First call: model sees the tools and may emit tool_use blocks
-    response = await client.messages.create(
+# First call: model sees the tools and may emit tool_use blocks
+response = client.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
+    messages=messages,
+    tools=tools,
+)
+messages.append({"role": "assistant", "content": response.content})
+
+# Execute every requested tool
+tool_calls = [b for b in response.content if b.type == "tool_use"]
+if tool_calls:
+    results = []
+    for c in tool_calls:
+        results.append({
+            "type": "tool_result",
+            "tool_use_id": c.id,
+            "content": read(**c.input),
+        })
+    messages.append({"role": "user", "content": results})
+
+    # Second call: model has tool results and produces final text
+    response = client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=1024,
         system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
         messages=messages,
         tools=tools,
     )
-    messages.append({"role": "assistant", "content": response.content})
 
-    # Execute every requested tool in parallel
-    tool_calls = [b for b in response.content if b.type == "tool_use"]
-    if tool_calls:
-        outputs = await asyncio.gather(*(read(**c.input) for c in tool_calls))
-        messages.append({
-            "role": "user",
-            "content": [
-                {"type": "tool_result", "tool_use_id": c.id, "content": o}
-                for c, o in zip(tool_calls, outputs)
-            ],
-        })
-
-        # Second call: model has tool results and produces final text
-        response = await client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=1024,
-            system="You are a helpful coding assistant. Use the read tool when you need to examine file contents.",
-            messages=messages,
-            tools=tools,
-        )
-
-    # Print the final text
-    for block in response.content:
-        if block.type == "text":
-            print(block.text)
-
-
-asyncio.run(main())
+# Print the final text
+for block in response.content:
+    if block.type == "text":
+        print(block.text)
 ```
 
 Three things to notice:
 
 1. **Two `messages.create` calls in fixed order.** Your code decides when each call happens. The model isn't choosing whether to keep going.
 2. **Tool execution lives between the two calls.** Your code runs the tools and stitches their results into the message history.
-3. **`asyncio.gather` runs every tool concurrently.** With one tool defined, all `tool_use` blocks are calls to `read` — they run in parallel. Order preservation lets the `zip` pair each result back to its originating request.
+3. **Each `tool_use` block is executed in turn.** The `for` loop runs them sequentially and collects the `tool_result` blocks for the second call.
 
 ## Running it
 
@@ -205,15 +185,15 @@ If you want your coding agent to write this for you, paste:
 ```
 Extend main.py from the previous module by adding a single tool called "read" and the tool-use protocol — but no loop yet, just one round of tool calls.
 
-1. Define `async def read(path: str) -> str` that opens the file at `path`, returns its contents, and catches any exception returning the error as a string. It's async even though the body is sync — this lets the executor dispatch multiple tool calls in parallel with asyncio.gather.
+1. Define `def read(path: str) -> str` that opens the file at `path`, returns its contents, and catches any exception returning the error as a string.
 2. Define a `tools` list with one entry:
    - name: "read"
    - description: "Read the contents of a file"
    - input_schema: JSON Schema dict with property "path" (string with a short description), required
-3. In main(), use a hardcoded user message (e.g., "What's in pyproject.toml?"). Make the first messages.create call with tools=tools.
+3. Use a hardcoded user message (e.g., "What's in pyproject.toml?"). Make the first messages.create call with tools=tools.
 4. Append the assistant's response to messages, then collect tool_use blocks. If any:
-   - Run them in parallel with `outputs = await asyncio.gather(*(read(**c.input) for c in tool_calls))`.
-   - Append the tool_result blocks (matching tool_use_id, content=output) as a single user message.
+   - Run each tool in turn with a `for` loop, collecting tool_result blocks (matching tool_use_id, content=read(**c.input)).
+   - Append the tool_result blocks as a single user message.
    - Make a second messages.create call (still with tools=tools) so the model can produce its final text.
 5. Print any text blocks from the final response.
 
