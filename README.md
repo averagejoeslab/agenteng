@@ -189,32 +189,27 @@ Persistent memory across sessions, context window as a budget, semantic recall.
 12. [Context as a budget](./agentic-engineering/part-03/modules/12-context-as-a-budget/)
 13. [Semantic recall](./agentic-engineering/part-03/modules/13-semantic-recall/)
 
-### Part 4 — Safety and Guardrails *(coming soon)*
-Sandboxing, approval gates, loop bounds, retry/backoff.
+### Part 4 — Safety and GuardrailsSandboxing, approval gates, loop bounds, retry/backoff.
 
 14. [Sandboxing](./agentic-engineering/part-04/modules/14-sandboxing/)
 15. [Approval gates and loop bounds](./agentic-engineering/part-04/modules/15-approval-gates-and-loop-bounds/)
 
-### Part 5 — Observability *(coming soon)*
-Structured traces of every LLM call, tool call, and state transition. Replay. Tooling landscape.
+### Part 5 — ObservabilityStructured traces of every LLM call, tool call, and state transition. Replay. Tooling landscape.
 
 16. [Structured tracing](./agentic-engineering/part-05/modules/16-structured-tracing/)
 17. [Replay and observability tooling](./agentic-engineering/part-05/modules/17-replay-and-observability-tooling/)
 
-### Part 6 — Evaluation *(coming soon)*
-Task-completion suites, trajectory analysis, LLM-as-judge, regression testing for non-deterministic systems.
+### Part 6 — EvaluationTask-completion suites, trajectory analysis, LLM-as-judge, regression testing for non-deterministic systems.
 
 18. [Eval foundations](./agentic-engineering/part-06/modules/18-eval-foundations/)
 19. [Eval implementation](./agentic-engineering/part-06/modules/19-eval-implementation/)
 
-### Part 7 — Cost and Latency *(coming soon)*
-Caching, batching, model routing, prompt caching, async/threading for parallelism.
+### Part 7 — Cost and LatencyCaching, batching, model routing, prompt caching, async/threading for parallelism.
 
 20. [Cost optimization](./agentic-engineering/part-07/modules/20-cost-optimization/)
 21. [Latency optimization](./agentic-engineering/part-07/modules/21-latency-optimization/)
 
-### Part 8 — Prompt and Context Tuning *(coming soon)*
-The system prompt as scaffolding. Iterative refinement of the full input assembly.
+### Part 8 — Prompt and Context TuningThe system prompt as scaffolding. Iterative refinement of the full input assembly.
 
 22. [Prompt design](./agentic-engineering/part-08/modules/22-prompt-design/)
 23. [Context assembly](./agentic-engineering/part-08/modules/23-context-assembly/)
