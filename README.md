@@ -160,59 +160,20 @@ In each case, the next action depends on what the previous action produced. The 
 
 ## Content
 
-### Part 1 — The Basic Agent
-Define what an agent is and build one end-to-end. Concept, single LLM call, multi-turn conversation, first tool, the TAO loop, then async with parallel tool dispatch.
+The curriculum is one straight line: start with a single LLM call and build outward, one capability at a time, until you reach a production-shaped coding agent.
 
-1. [What is an agent?](./agentic-engineering/part-01/modules/01-what-is-an-agent/)
-2. [A single LLM call](./agentic-engineering/part-01/modules/02-a-single-llm-call/)
-3. [Multi-turn conversation](./agentic-engineering/part-01/modules/03-multi-turn-conversation/)
-4. [First tool](./agentic-engineering/part-01/modules/04-first-tool/)
-5. [The TAO loop](./agentic-engineering/part-01/modules/05-the-tao-loop/)
-6. [Async and parallel tool dispatch](./agentic-engineering/part-01/modules/06-async-and-parallel-dispatch/)
+1. [What is an agent?](./modules/01-what-is-an-agent/) — concept, three components, end-to-end sketch
+2. [An LLM call](./modules/02-an-llm-call/) — the Messages API; sync and async streaming
+3. [Add a loop](./modules/03-add-a-loop/) — multi-turn → first tool → TAO loop → async with parallel dispatch
+4. [Add tools](./modules/04-add-tools/) — tool design, the registry pattern, the toolkit, a central executor
+5. [Add memory](./modules/05-add-memory/) — persistence, token budget, semantic recall
+6. [Add sandboxing](./modules/06-add-sandboxing/) — Docker isolation for the `bash` tool *(stubbed)*
+7. [Add evaluation](./modules/07-add-evaluation/) — task suites, LLM-as-judge, regression testing *(stubbed)*
+8. [Add guardrails](./modules/08-add-guardrails/) — approval gates, loop bounds, retry/backoff *(stubbed)*
+9. [Add observability](./modules/09-add-observability/) — structured spans, JSONL traces, replay *(stubbed)*
+10. [Add performance](./modules/10-add-performance/) — prompt caching, tool caching, threading, streaming *(stubbed)*
 
-**Reference implementation agent:** [`agents/basic-agent`](./agents/basic-agent/)
-
-### Part 2 — Tool Engineering
-Grow the basic agent into a multi-tool coding agent: tool design principles, a registry pattern, the toolkit, and a centralized executor.
-
-7. [Tool design](./agentic-engineering/part-02/modules/07-tool-design/)
-8. [The tool registry](./agentic-engineering/part-02/modules/08-the-tool-registry/)
-9. [Building the toolkit](./agentic-engineering/part-02/modules/09-building-the-toolkit/)
-10. [The tool executor](./agentic-engineering/part-02/modules/10-the-tool-executor/)
-
-**Reference implementation agent:** [`agents/coding-agent`](./agents/coding-agent/)
-
-### Part 3 — Memory and Context
-Persistent memory across sessions, context window as a budget, semantic recall.
-
-11. [Persistent memory](./agentic-engineering/part-03/modules/11-persistent-memory/)
-12. [Context as a budget](./agentic-engineering/part-03/modules/12-context-as-a-budget/)
-13. [Semantic recall](./agentic-engineering/part-03/modules/13-semantic-recall/)
-
-### Part 4 — Safety and GuardrailsSandboxing, approval gates, loop bounds, retry/backoff.
-
-14. [Sandboxing](./agentic-engineering/part-04/modules/14-sandboxing/)
-15. [Approval gates and loop bounds](./agentic-engineering/part-04/modules/15-approval-gates-and-loop-bounds/)
-
-### Part 5 — ObservabilityStructured traces of every LLM call, tool call, and state transition. Replay. Tooling landscape.
-
-16. [Structured tracing](./agentic-engineering/part-05/modules/16-structured-tracing/)
-17. [Replay and observability tooling](./agentic-engineering/part-05/modules/17-replay-and-observability-tooling/)
-
-### Part 6 — EvaluationTask-completion suites, trajectory analysis, LLM-as-judge, regression testing for non-deterministic systems.
-
-18. [Eval foundations](./agentic-engineering/part-06/modules/18-eval-foundations/)
-19. [Eval implementation](./agentic-engineering/part-06/modules/19-eval-implementation/)
-
-### Part 7 — Cost and LatencyCaching, batching, model routing, prompt caching, async/threading for parallelism.
-
-20. [Cost optimization](./agentic-engineering/part-07/modules/20-cost-optimization/)
-21. [Latency optimization](./agentic-engineering/part-07/modules/21-latency-optimization/)
-
-### Part 8 — Prompt and Context TuningThe system prompt as scaffolding. Iterative refinement of the full input assembly.
-
-22. [Prompt design](./agentic-engineering/part-08/modules/22-prompt-design/)
-23. [Context assembly](./agentic-engineering/part-08/modules/23-context-assembly/)
+Modules 1-5 are complete. Modules 6-10 are stubbed; the corresponding reference agents in [`agents/`](./agents/) already implement what each one will describe — feel free to read those in the meantime.
 
 ## License
 

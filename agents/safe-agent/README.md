@@ -1,11 +1,9 @@
 # safe-agent
 
-The Part 4 end state. Adds **sandboxing** and **safety guards** to the memory-agent.
+Adds **sandboxing** and **safety guards** to the memory-agent. The end state of [Module 6: Add sandboxing](../../modules/06-add-sandboxing/) and [Module 8: Add guardrails](../../modules/08-add-guardrails/).
 
-Built across Modules 14–15:
-
-- **[Module 14: Sandboxing](../../agentic-engineering/part-04/modules/14-sandboxing/)** — `bash` runs inside a Docker container with `--cap-drop ALL`, `--network none`, `--read-only`, resource caps. Long-running container, `docker exec` per call.
-- **[Module 15: Approval gates and loop bounds](../../agentic-engineering/part-04/modules/15-approval-gates-and-loop-bounds/)** — `write`, `edit`, `bash` require user approval before each run. Sequential dispatch when any requested tool is dangerous. `MAX_ITERATIONS` cap on the inner loop. SDK retry/backoff on transient API errors.
+- **[Module 6: Add sandboxing](../../modules/06-add-sandboxing/)** — `bash` runs inside a Docker container with `--cap-drop ALL`, `--network none`, `--read-only`, resource caps. Long-running container, `docker exec` per call.
+- **[Module 8: Add guardrails](../../modules/08-add-guardrails/)** — `write`, `edit`, `bash` require user approval before each run. Sequential dispatch when any requested tool is dangerous. `MAX_ITERATIONS` cap on the inner loop. SDK retry/backoff on transient API errors.
 
 ## Run it
 

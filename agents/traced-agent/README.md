@@ -1,11 +1,8 @@
 # traced-agent
 
-The Part 5 end state. Adds **structured tracing** to the safe-agent. Every turn produces a tree of spans (turn → llm.call → tool.call) emitted as JSONL.
+Adds **structured tracing** to the safe-agent. Every turn produces a tree of spans (turn → llm.call → tool.call) emitted as JSONL. The end state of [Module 9: Add observability](../../modules/09-add-observability/).
 
-Built across Modules 16–17:
-
-- **[Module 16: Structured tracing](../../agentic-engineering/part-05/modules/16-structured-tracing/)** — `span()` context manager auto-emits with timing and error capture. Each turn rooted at a `turn` span; LLM calls and tool calls nest under it via `parent_span_id`.
-- **[Module 17: Replay and observability tooling](../../agentic-engineering/part-05/modules/17-replay-and-observability-tooling/)** — JSONL is grep-able, jq-friendly, and one OTel exporter step away from any modern observability platform.
+- **[Module 9: Add observability](../../modules/09-add-observability/)** — a `span()` context manager that auto-emits with timing and error capture. Each turn rooted at a `turn` span; LLM calls and tool calls nest under it via `parent_span_id`. The JSONL output is grep-able, jq-friendly, and one OTel exporter step away from any modern observability platform.
 
 ## Run it
 

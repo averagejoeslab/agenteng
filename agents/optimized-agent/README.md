@@ -1,11 +1,8 @@
 # optimized-agent
 
-The Part 7 end state. Adds **cost and latency optimizations** to the traced-agent.
+Adds **cost and latency optimizations** to the traced-agent. Part of the end state of [Module 10: Add performance](../../modules/10-add-performance/).
 
-Built across Modules 20–21:
-
-- **[Module 20: Cost optimization](../../agentic-engineering/part-07/modules/20-cost-optimization/)** — Anthropic prompt caching with `cache_control` on system + tool schemas, idempotent tool-output caching with mutation invalidation, cheap-model routing (`claude-haiku-4-5`) for summaries.
-- **[Module 21: Latency optimization](../../agentic-engineering/part-07/modules/21-latency-optimization/)** — `asyncio.to_thread` for blocking sync tool bodies; streaming the final response; profiling via Module 16 traces.
+- **[Module 10: Add performance](../../modules/10-add-performance/)** — Anthropic prompt caching with `cache_control` on system + tool schemas, idempotent tool-output caching with mutation invalidation, cheap-model routing (`claude-haiku-4-5`) for summaries, `asyncio.to_thread` for blocking sync tool bodies, and streaming the final response.
 
 ## Run it
 

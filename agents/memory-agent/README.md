@@ -1,12 +1,12 @@
 # memory-agent
 
-The Part 3 end state. Adds **persistence**, **token budget management**, and **semantic recall** to the coding-agent.
+Adds **persistence**, **token budget management**, and **semantic recall** to the coding-agent. The end state of [Module 5: Add memory](../../modules/05-add-memory/).
 
-Built across Modules 11–13:
+Built on top of `coding-agent`, with three concerns added:
 
-- **[Module 11: Persistent memory](../../agentic-engineering/part-03/modules/11-persistent-memory/)** — JSON-file message storage at `~/.memory-agent/messages.json`, save on user-turn boundaries.
-- **[Module 12: Context as a budget](../../agentic-engineering/part-03/modules/12-context-as-a-budget/)** — `count_tokens` API, eviction by complete user turns to preserve `tool_use`/`tool_result` pairing.
-- **[Module 13: Semantic recall](../../agentic-engineering/part-03/modules/13-semantic-recall/)** — `sentence-transformers` embeddings (`all-MiniLM-L6-v2`), JSON vector store, top-K cosine similarity recall, per-turn summaries injected into the system prompt.
+- **Persistent memory** — JSON-file message storage at `~/.memory-agent/messages.json`, saved on user-turn boundaries.
+- **Context as a budget** — the `count_tokens` API plus eviction by complete user turns to preserve `tool_use`/`tool_result` pairing.
+- **Semantic recall** — `sentence-transformers` embeddings (`all-MiniLM-L6-v2`), a JSON vector store, top-K cosine similarity recall, with per-turn summaries injected into the system prompt.
 
 ## Run it
 

@@ -1,11 +1,11 @@
 # production-agent
 
-The Part 8 end state — and the final agent in the curriculum. Adds **structured prompt design** and a unified **`assemble()` function** that brings memory, recall, prompt, and budget together at one call site.
+The final agent in the curriculum. Adds **structured prompt design** and a unified **`assemble()` function** that brings memory, recall, prompt, and budget together at one call site.
 
-Built across Modules 22–23:
+The curriculum's destination — the final reference in [Module 10: Add performance](../../modules/10-add-performance/).
 
-- **[Module 22: Prompt design](../../agentic-engineering/part-08/modules/22-prompt-design/)** — System prompt now has named sections (Role, Tools, Working style, Completion criteria) instead of a one-liner.
-- **[Module 23: Context assembly](../../agentic-engineering/part-08/modules/23-context-assembly/)** — `assemble(user_input, messages, recall_entries)` returns `{system, tools, messages}` ready for the LLM call. The previously ad-hoc per-turn assembly logic is now one named function.
+- **Structured prompt design** — the system prompt now has named sections (Role, Tools, Working style, Completion criteria) instead of a one-liner.
+- **`assemble()` as a single function** — `assemble(user_input, messages, recall_entries)` returns `{system, tools, messages}` ready for the LLM call. The previously ad-hoc per-turn assembly logic is now one named function.
 
 ## Run it
 
@@ -29,15 +29,15 @@ uv run production-agent/main.py
 
 ## What this completes
 
-production-agent ships everything from Parts 1-8:
+production-agent ships everything the curriculum builds:
 
-- Async TAO loop with parallel tool dispatch (Parts 1-2)
-- Persistence, token budget, semantic recall (Part 3)
-- Sandbox, approval gates, loop bounds (Part 4)
-- Structured tracing (Part 5)
-- Prompt caching, tool output caching, threading, streaming (Part 7)
-- Structured prompt design + unified context assembly (Part 8)
+- Async TAO loop with parallel tool dispatch (Modules 3–4)
+- Persistence, token budget, semantic recall (Module 5)
+- Docker sandbox (Module 6)
+- Approval gates, loop bounds, retry/backoff (Module 8)
+- Structured tracing (Module 9)
+- Prompt caching, tool output caching, threading, streaming, structured prompt + `assemble()` (Module 10)
 
-Plus the eval suite at `evals/` (Part 6) tests this and any other agent.
+Plus the eval suite at `evals/` (Module 7) tests this and any other agent.
 
 This is the curriculum's destination.

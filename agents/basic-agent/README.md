@@ -1,14 +1,11 @@
 # basic-agent
 
-The minimal coding agent Part 1 produces. Terminal REPL wrapping a TAO (Think, Act, Observe) loop, with `read` as its single tool.
+The minimal coding agent. Terminal REPL wrapping a TAO (Think, Act, Observe) loop, with `read` as its single tool. The end state of [Module 3: Add a loop](../../modules/03-add-a-loop/).
 
-Built step by step across Modules 2–6:
+Built across:
 
-- **[Module 2](../../agentic-engineering/part-01/modules/02-a-single-llm-call/)** — a single LLM call (sync, then async streaming)
-- **[Module 3](../../agentic-engineering/part-01/modules/03-multi-turn-conversation/)** — multi-turn REPL chatbot
-- **[Module 4](../../agentic-engineering/part-01/modules/04-first-tool/)** — the first tool (one-round workflow)
-- **[Module 5](../../agentic-engineering/part-01/modules/05-the-tao-loop/)** — the TAO loop (workflow → agent)
-- **[Module 6](../../agentic-engineering/part-01/modules/06-async-and-parallel-dispatch/)** — async refactor for parallel tool dispatch (this agent's end state)
+- **[Module 2: An LLM call](../../modules/02-an-llm-call/)** — a single LLM call (sync, then async streaming)
+- **[Module 3: Add a loop](../../modules/03-add-a-loop/)** — multi-turn → first tool → TAO loop → async refactor for parallel tool dispatch
 
 ## Run it
 
@@ -30,6 +27,6 @@ The model calls `read(path=...)` when it needs to examine a file. Paths resolve 
 
 ## Files
 
-- `main.py` — the agent (~70 lines, built across Modules 2–6)
+- `main.py` — the agent (~70 lines)
 
 Dependencies, venv, and `.env` live at the `agents/` level.

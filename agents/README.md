@@ -1,6 +1,6 @@
 # agents
 
-Reference agents built across the agenteng curriculum. Each is a self-contained snapshot of the agent at the end of one Part — runnable on its own, readable in a single file. Each builds on the previous Part's features, cumulatively.
+Reference agents built across the [agenteng curriculum](../README.md). Each is a self-contained snapshot at a checkpoint along the build — runnable on its own, readable in a single file. Each builds cumulatively on the previous one.
 
 ## Setup (once)
 
@@ -21,19 +21,19 @@ Run from `agents/` — the `.env` and `.venv` are resolved relative to this dire
 
 ## Agents
 
-Each is the cumulative end state of one Part — a strict superset of the previous one's features.
+Each agent is the cumulative end state of one or more curriculum modules — a strict superset of the previous agent's features.
 
-| # | Agent | Part | Adds |
+| # | Agent | Module(s) | Adds |
 |---|---|---|---|
-| 1 | [`basic-agent`](./basic-agent/) | Part 1 | REPL + TAO loop + one tool (read), async with parallel dispatch |
-| 2 | [`coding-agent`](./coding-agent/) | Part 2 | Tool registry + six tools (write/edit/grep/glob/bash) + centralized executor |
-| 3 | [`memory-agent`](./memory-agent/) | Part 3 | Persistent state + token budget eviction + semantic recall |
-| 4 | [`safe-agent`](./safe-agent/) | Part 4 | Docker-sandboxed bash + approval gates + loop bounds + retry |
-| 5 | [`traced-agent`](./traced-agent/) | Part 5 | Structured tracing emitted as JSONL spans |
-| 6 | [`optimized-agent`](./optimized-agent/) | Part 7 | Prompt caching + tool output caching + threading + streaming |
-| 7 | [`production-agent`](./production-agent/) | Part 8 | Structured prompts + the `assemble()` function — the curriculum's destination |
+| 1 | [`basic-agent`](./basic-agent/) | [3](../modules/03-add-a-loop/) | REPL + TAO loop + one tool (read), async with parallel dispatch |
+| 2 | [`coding-agent`](./coding-agent/) | [4](../modules/04-add-tools/) | Tool registry + six tools (write/edit/grep/glob/bash) + centralized executor |
+| 3 | [`memory-agent`](./memory-agent/) | [5](../modules/05-add-memory/) | Persistent state + token budget eviction + semantic recall |
+| 4 | [`safe-agent`](./safe-agent/) | [6](../modules/06-add-sandboxing/), [8](../modules/08-add-guardrails/) | Docker-sandboxed bash + approval gates + loop bounds + retry |
+| 5 | [`traced-agent`](./traced-agent/) | [9](../modules/09-add-observability/) | Structured tracing emitted as JSONL spans |
+| 6 | [`optimized-agent`](./optimized-agent/) | [10](../modules/10-add-performance/) | Prompt caching + tool output caching + threading + streaming |
+| 7 | [`production-agent`](./production-agent/) | [10](../modules/10-add-performance/) | Structured prompts + the `assemble()` function — the curriculum's destination |
 
-(Part 6 — Evaluation — ships at [`evals/`](../evals/) at the repo root, since it tests other agents rather than being one.)
+(Module 7 — Evaluation — ships at [`evals/`](../evals/) at the repo root, since it tests other agents rather than being one.)
 
 ## Picking which agent to run
 
