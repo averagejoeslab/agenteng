@@ -178,36 +178,57 @@ A tool is the agent's interface to its environment. Bad tools cost more tokens, 
 
 Each new tool needs three things plumbed: the function, the schema, and the dispatch branch. With one tool that's fine; with six it's three places to edit per tool, easy to drift out of sync.
 
-A registry collapses those into one definition:
+A registry collapses those into one definition. Each parameter declares its **type** (so the model knows whether to send a string, integer, or boolean) and whether it's **required**. Optional parameters default to `required=False`:
 
 ```python
 TOOLS = {
-    "read":  {"fn": read,  "description": "Read the contents of a file",
-              "params": {"path": "Path to the file to read"}},
-    "write": {"fn": write, "description": "Create or overwrite a file",
-              "params": {"path": "Path to the file to write",
-                         "content": "Content to write to the file"}},
-    # ...
+    "read": {
+        "fn": read,
+        "description": "Read a file's contents (with optional line pagination)",
+        "params": {
+            "path":   {"type": "string",  "description": "Path to the file"},
+            "offset": {"type": "integer", "description": "First line to read, 0-indexed", "required": False},
+            "limit":  {"type": "integer", "description": "Maximum lines to read", "required": False},
+        },
+    },
+    "edit": {
+        "fn": edit,
+        "description": "Replace 'old' with 'new' in a file",
+        "params": {
+            "path": {"type": "string",  "description": "Path to edit"},
+            "old":  {"type": "string",  "description": "Exact text to replace"},
+            "new":  {"type": "string",  "description": "Replacement text"},
+            "all":  {"type": "boolean", "description": "Replace every occurrence (default: require unique match)", "required": False},
+        },
+    },
+    # ... write, grep, glob, bash ...
 }
 ```
 
-Each entry has the function, a description, and a `params` map of parameter-name to parameter-description. The schema and the dispatch fall out of this:
+Two things this richer shape buys you:
+
+- **`read` can paginate.** When the model reads a 5000-line file just to look at one function, it pays for the whole file in tokens. With `offset`/`limit`, it can ask for lines 200–230. Same tool surface; meaningfully less token waste.
+- **`edit` can opt in to multi-occurrence replacement.** The default still refuses ambiguous matches (good — keeps the model from accidentally rewriting unrelated code), but `all=true` lets it deliberately replace every occurrence when that's the intent.
+
+The schema builder pulls the type and required-ness directly from the registry:
 
 ```python
 def build_tool_schemas(tools):
     schemas = []
     for name, meta in tools.items():
-        properties = {
-            p: {"type": "string", "description": desc}
-            for p, desc in meta["params"].items()
-        }
+        properties = {}
+        required = []
+        for pname, pmeta in meta["params"].items():
+            properties[pname] = {"type": pmeta["type"], "description": pmeta["description"]}
+            if pmeta.get("required", True):
+                required.append(pname)
         schemas.append({
             "name": name,
             "description": meta["description"],
             "input_schema": {
                 "type": "object",
                 "properties": properties,
-                "required": list(meta["params"]),
+                "required": required,
             },
         })
     return schemas
@@ -216,10 +237,7 @@ def build_tool_schemas(tools):
 TOOL_SCHEMAS = build_tool_schemas(TOOLS)
 ```
 
-Now adding a tool is one entry in `TOOLS`. The schema and dispatch update automatically.
-
-> [!NOTE]
-> This registry treats every parameter as a required string. That's enough for most coding-agent tools — paths, regex patterns, shell commands. If a tool needs numbers, enums, or optional parameters, the registry would extend; for our six tools, the simple shape is fine.
+Adding a tool is now one entry in `TOOLS`. The JSON Schema and the dispatch update automatically; no risk of drift.
 
 ## The toolkit
 
@@ -243,9 +261,13 @@ A few notes on the choices:
 **`bash` is a single escape hatch.** Rather than tools for `run_tests`, `git_status`, `npm_install`, the model gets one general-purpose shell. The tradeoff: less guidance for the model, more flexibility, far fewer tools to maintain. For an experienced coding model, it works.
 
 ```python
-async def read(path: str) -> str:
+async def read(path: str, offset: int | None = None, limit: int | None = None) -> str:
     with open(path, "r") as f:
-        return f.read()
+        lines = f.read().splitlines()
+    start = offset or 0
+    end = start + limit if limit is not None else len(lines)
+    selected = lines[start:end]
+    return "\n".join(f"{i + 1 + start:4}| {line}" for i, line in enumerate(selected))
 
 
 async def write(path: str, content: str) -> str:
@@ -254,16 +276,17 @@ async def write(path: str, content: str) -> str:
     return f"wrote {len(content)} chars to {path}"
 
 
-async def edit(path: str, old: str, new: str) -> str:
+async def edit(path: str, old: str, new: str, all: bool = False) -> str:
     with open(path, "r") as f:
         content = f.read()
     if old not in content:
         return f"error: 'old' string not found in {path}"
     count = content.count(old)
-    if count > 1:
-        return f"error: 'old' appears {count} times — make it more specific"
+    if not all and count > 1:
+        return f"error: 'old' appears {count} times — set all=true or make it more specific"
+    result = content.replace(old, new) if all else content.replace(old, new, 1)
     with open(path, "w") as f:
-        f.write(content.replace(old, new))
+        f.write(result)
     return "ok"
 
 
@@ -364,11 +387,11 @@ Try it on a real task:
 
 The model picks its own path: probably `glob` or `grep` first, maybe `read` on a few hot files, then `write`. Each tool call is one entry in the registry; the loop doesn't know or care how many there are. **This is what makes it an agent — the model, not your code, decides what comes next.** And because Module 4's persistence and recall machinery is still wired up, the agent remembers what it did across sessions — it's stateful from day one.
 
-## One eviction tweak
+## One budget tweak
 
 The persistence/budget/recall trio carries forward unchanged from Module 4 — except for one thing. Tool-using messages can carry `tool_result` blocks back as `user` messages, and splitting a `tool_use` / `tool_result` pair across an eviction boundary makes the API reject the request with a 400.
 
-`find_safe_truncation_point` extends to skip those:
+`find_turn_boundaries` extends to skip those:
 
 ```python
 def _is_tool_result(block) -> bool:
@@ -377,7 +400,7 @@ def _is_tool_result(block) -> bool:
     return getattr(block, "type", None) == "tool_result"
 
 
-def find_safe_truncation_point(messages: list, drop_n: int = 1) -> int:
+def find_turn_boundaries(messages: list) -> list:
     boundaries = []
     for i, msg in enumerate(messages):
         if msg["role"] != "user":
@@ -387,12 +410,26 @@ def find_safe_truncation_point(messages: list, drop_n: int = 1) -> int:
             boundaries.append(i)
         elif not any(_is_tool_result(b) for b in content):
             boundaries.append(i)
-    if drop_n >= len(boundaries):
-        return boundaries[-1] if boundaries else 0
-    return boundaries[drop_n]
+    return boundaries
 ```
 
-A user message with plain text is a safe boundary; one carrying tool results isn't.
+A user message with plain text is a safe boundary; one carrying tool results isn't. The budget formula extends too — tool schemas now contribute to fixed cost:
+
+```python
+TOOL_SCHEMA_TOKENS = approx_tokens(json.dumps(TOOL_SCHEMAS))
+
+
+def assemble(user_input, system, history):
+    fixed_tokens = (
+        MAX_RESPONSE_TOKENS
+        + TOOL_SCHEMA_TOKENS          # new: tools cost tokens too
+        + approx_tokens(system)
+        + approx_tokens(user_input)
+    )
+    # ... rest unchanged from Module 4 ...
+```
+
+`TOOL_SCHEMA_TOKENS` is a module-level constant — the schemas don't change at runtime, so we count them once at import and reuse.
 
 ## What's missing
 

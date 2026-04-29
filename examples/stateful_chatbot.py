@@ -13,6 +13,7 @@ client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 MODEL = "claude-sonnet-4-5"
 SUMMARY_MODEL = "claude-haiku-4-5"
 CONTEXT_BUDGET = 150_000
+MAX_RESPONSE_TOKENS = 1024
 RECALL_K = 3
 RECALL_THRESHOLD = 0.3
 
@@ -44,26 +45,70 @@ def save_messages(messages: list) -> None:
     MESSAGES_FILE.write_text(json.dumps(messages, default=_serialize, indent=2))
 
 
-# --- Token budget ---
+# --- Token budget (upfront computation) ---
 
-def find_safe_truncation_point(messages: list, drop_n: int = 1) -> int:
-    boundaries = [i for i, msg in enumerate(messages) if msg["role"] == "user"]
-    if drop_n >= len(boundaries):
-        return boundaries[-1] if boundaries else 0
-    return boundaries[drop_n]
+def approx_tokens(value) -> int:
+    """Rough char-based estimate (~4 chars/token for English).
+    Local and free — trades a few percent of accuracy for zero API cost."""
+    if isinstance(value, str):
+        return len(value) // 4
+    return len(json.dumps(value, default=_serialize)) // 4
 
 
-def trim_to_budget(messages: list, budget: int, system: str) -> list:
-    while True:
-        count = client.messages.count_tokens(
-            model=MODEL, system=system, messages=messages,
-        )
-        if count.input_tokens <= budget or len(messages) <= 1:
-            return messages
-        truncate_at = find_safe_truncation_point(messages, drop_n=1)
-        if truncate_at == 0:
-            return messages
-        messages = messages[truncate_at:]
+def message_tokens(msg) -> int:
+    return approx_tokens(msg["content"]) + 5  # role overhead
+
+
+def _is_tool_result(block) -> bool:
+    if isinstance(block, dict):
+        return block.get("type") == "tool_result"
+    return getattr(block, "type", None) == "tool_result"
+
+
+def find_turn_boundaries(messages: list) -> list:
+    """Indices where a fresh user turn starts (not a reply carrying tool_results)."""
+    boundaries = []
+    for i, msg in enumerate(messages):
+        if msg["role"] != "user":
+            continue
+        content = msg["content"]
+        if isinstance(content, str):
+            boundaries.append(i)
+        elif not any(_is_tool_result(b) for b in content):
+            boundaries.append(i)
+    return boundaries
+
+
+def assemble(user_input: str, system: str, history: list) -> list:
+    """Compute the budget upfront and fill the buffer newest-first to fit.
+
+    Budget formula:
+        past_turn_budget = CONTEXT_BUDGET
+                         - MAX_RESPONSE_TOKENS
+                         - approx_tokens(system)
+                         - approx_tokens(user_input)
+    """
+    fixed_tokens = (
+        MAX_RESPONSE_TOKENS
+        + approx_tokens(system)
+        + approx_tokens(user_input)
+    )
+    buffer_budget = CONTEXT_BUDGET - fixed_tokens
+    if buffer_budget <= 0:
+        return [{"role": "user", "content": user_input}]
+
+    boundaries = find_turn_boundaries(history) + [len(history)]
+    used = 0
+    keep_from = len(history)
+    for i in range(len(boundaries) - 2, -1, -1):
+        turn = history[boundaries[i]:boundaries[i + 1]]
+        turn_tokens = sum(message_tokens(m) for m in turn)
+        if used + turn_tokens > buffer_budget:
+            break
+        keep_from = boundaries[i]
+        used += turn_tokens
+
+    return history[keep_from:] + [{"role": "user", "content": user_input}]
 
 
 # --- Semantic recall ---
@@ -129,7 +174,7 @@ BASE_SYSTEM = "You are a helpful assistant."
 
 
 def main():
-    messages = load_messages()
+    history = load_messages()
     recall_entries = load_recall()
 
     while True:
@@ -144,13 +189,12 @@ def main():
         else:
             system = BASE_SYSTEM
 
-        messages.append({"role": "user", "content": user_input})
-        messages = trim_to_budget(messages, CONTEXT_BUDGET, system)
+        messages = assemble(user_input, system, history)
         turn_start = len(messages) - 1
 
         response = client.messages.create(
             model=MODEL,
-            max_tokens=1024,
+            max_tokens=MAX_RESPONSE_TOKENS,
             system=system,
             messages=messages,
         )
@@ -158,7 +202,9 @@ def main():
         messages.append({"role": "assistant", "content": assistant_text})
         print(assistant_text)
 
-        save_messages(messages)
+        # Append the new turn (user + assistant) to persistent history.
+        history = messages
+        save_messages(history)
 
         turn_messages = messages[turn_start:]
         summary = summarize_turn(turn_messages)

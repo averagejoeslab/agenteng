@@ -19,6 +19,7 @@ client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 MODEL = "claude-sonnet-4-5"
 SUMMARY_MODEL = "claude-haiku-4-5"
 CONTEXT_BUDGET = 150_000
+MAX_RESPONSE_TOKENS = 1024
 RECALL_K = 3
 RECALL_THRESHOLD = 0.3
 SANDBOX_IMAGE = "agenteng-sandbox"
@@ -74,9 +75,13 @@ def stop_sandbox():
 
 # --- Tools ---
 
-async def read(path: str) -> str:
+async def read(path: str, offset: int | None = None, limit: int | None = None) -> str:
     with open(path, "r") as f:
-        return f.read()
+        lines = f.read().splitlines()
+    start = offset or 0
+    end = start + limit if limit is not None else len(lines)
+    selected = lines[start:end]
+    return "\n".join(f"{i + 1 + start:4}| {line}" for i, line in enumerate(selected))
 
 
 async def write(path: str, content: str) -> str:
@@ -85,16 +90,17 @@ async def write(path: str, content: str) -> str:
     return f"wrote {len(content)} chars to {path}"
 
 
-async def edit(path: str, old: str, new: str) -> str:
+async def edit(path: str, old: str, new: str, all: bool = False) -> str:
     with open(path, "r") as f:
         content = f.read()
     if old not in content:
         return f"error: 'old' string not found in {path}"
     count = content.count(old)
-    if count > 1:
-        return f"error: 'old' appears {count} times — make it more specific"
+    if not all and count > 1:
+        return f"error: 'old' appears {count} times — set all=true or make it more specific"
+    result = content.replace(old, new) if all else content.replace(old, new, 1)
     with open(path, "w") as f:
-        f.write(content.replace(old, new))
+        f.write(result)
     return "ok"
 
 
@@ -136,33 +142,71 @@ async def bash(cmd: str) -> str:
 # --- Registry ---
 
 TOOLS = {
-    "read":  {"fn": read,  "description": "Read the contents of a file",
-              "params": {"path": "Path to the file to read"}},
-    "write": {"fn": write, "description": "Create or overwrite a file",
-              "params": {"path": "Path to the file to write",
-                         "content": "Content to write to the file"}},
-    "edit":  {"fn": edit,  "description": "Replace 'old' with 'new' in a file; 'old' must appear exactly once",
-              "params": {"path": "Path to the file to edit",
-                         "old": "Exact text to replace (must appear exactly once)",
-                         "new": "Replacement text"}},
-    "grep":  {"fn": grep,  "description": "Search file contents for a regex pattern under a directory",
-              "params": {"pattern": "Regex pattern to search for",
-                         "path": "Directory to search under"}},
-    "glob":  {"fn": glob,  "description": "Find files matching a glob pattern (use ** for recursive)",
-              "params": {"pattern": "Glob pattern; use ** for recursive matches"}},
-    "bash":  {"fn": bash,  "description": "Run a shell command (sandboxed)",
-              "params": {"cmd": "Shell command to run"}},
+    "read": {
+        "fn": read,
+        "description": "Read a file's contents (with optional line pagination)",
+        "params": {
+            "path":   {"type": "string",  "description": "Path to the file"},
+            "offset": {"type": "integer", "description": "First line to read, 0-indexed", "required": False},
+            "limit":  {"type": "integer", "description": "Maximum lines to read", "required": False},
+        },
+    },
+    "write": {
+        "fn": write,
+        "description": "Create or overwrite a file",
+        "params": {
+            "path":    {"type": "string", "description": "Path to write to"},
+            "content": {"type": "string", "description": "Content to write"},
+        },
+    },
+    "edit": {
+        "fn": edit,
+        "description": "Replace 'old' with 'new' in a file",
+        "params": {
+            "path": {"type": "string",  "description": "Path to edit"},
+            "old":  {"type": "string",  "description": "Exact text to replace"},
+            "new":  {"type": "string",  "description": "Replacement text"},
+            "all":  {"type": "boolean", "description": "Replace every occurrence (default: require unique match)", "required": False},
+        },
+    },
+    "grep": {
+        "fn": grep,
+        "description": "Search file contents for a regex pattern under a directory",
+        "params": {
+            "pattern": {"type": "string", "description": "Regex pattern"},
+            "path":    {"type": "string", "description": "Directory to search under"},
+        },
+    },
+    "glob": {
+        "fn": glob,
+        "description": "Find files matching a glob pattern (use ** for recursive)",
+        "params": {
+            "pattern": {"type": "string", "description": "Glob pattern"},
+        },
+    },
+    "bash": {
+        "fn": bash,
+        "description": "Run a shell command (sandboxed)",
+        "params": {
+            "cmd": {"type": "string", "description": "Shell command to run"},
+        },
+    },
 }
 
 
 def build_tool_schemas(tools):
     schemas = []
     for name, meta in tools.items():
-        properties = {p: {"type": "string", "description": desc} for p, desc in meta["params"].items()}
+        properties = {}
+        required = []
+        for pname, pmeta in meta["params"].items():
+            properties[pname] = {"type": pmeta["type"], "description": pmeta["description"]}
+            if pmeta.get("required", True):
+                required.append(pname)
         schemas.append({
             "name": name,
             "description": meta["description"],
-            "input_schema": {"type": "object", "properties": properties, "required": list(meta["params"])},
+            "input_schema": {"type": "object", "properties": properties, "required": required},
         })
     return schemas
 
@@ -204,13 +248,29 @@ def save_messages(messages: list) -> None:
     MESSAGES_FILE.write_text(json.dumps(messages, default=_serialize, indent=2))
 
 
+# --- Token budget (upfront computation) ---
+
+def approx_tokens(value) -> int:
+    """Rough char-based estimate (~4 chars/token for English)."""
+    if isinstance(value, str):
+        return len(value) // 4
+    return len(json.dumps(value, default=_serialize)) // 4
+
+
+def message_tokens(msg) -> int:
+    return approx_tokens(msg["content"]) + 5  # role overhead
+
+
+TOOL_SCHEMA_TOKENS = approx_tokens(json.dumps(TOOL_SCHEMAS))
+
+
 def _is_tool_result(block) -> bool:
     if isinstance(block, dict):
         return block.get("type") == "tool_result"
     return getattr(block, "type", None) == "tool_result"
 
 
-def find_safe_truncation_point(messages: list, drop_n: int = 1) -> int:
+def find_turn_boundaries(messages: list) -> list:
     boundaries = []
     for i, msg in enumerate(messages):
         if msg["role"] != "user":
@@ -220,22 +280,33 @@ def find_safe_truncation_point(messages: list, drop_n: int = 1) -> int:
             boundaries.append(i)
         elif not any(_is_tool_result(b) for b in content):
             boundaries.append(i)
-    if drop_n >= len(boundaries):
-        return boundaries[-1] if boundaries else 0
-    return boundaries[drop_n]
+    return boundaries
 
 
-async def trim_to_budget(messages: list, budget: int, system: str) -> list:
-    while True:
-        count = await client.messages.count_tokens(
-            model=MODEL, system=system, messages=messages, tools=TOOL_SCHEMAS,
-        )
-        if count.input_tokens <= budget or len(messages) <= 1:
-            return messages
-        truncate_at = find_safe_truncation_point(messages, drop_n=1)
-        if truncate_at == 0:
-            return messages
-        messages = messages[truncate_at:]
+def assemble(user_input: str, system: str, history: list) -> list:
+    """Compute the budget upfront and fill the buffer newest-first to fit."""
+    fixed_tokens = (
+        MAX_RESPONSE_TOKENS
+        + TOOL_SCHEMA_TOKENS
+        + approx_tokens(system)
+        + approx_tokens(user_input)
+    )
+    buffer_budget = CONTEXT_BUDGET - fixed_tokens
+    if buffer_budget <= 0:
+        return [{"role": "user", "content": user_input}]
+
+    boundaries = find_turn_boundaries(history) + [len(history)]
+    used = 0
+    keep_from = len(history)
+    for i in range(len(boundaries) - 2, -1, -1):
+        turn = history[boundaries[i]:boundaries[i + 1]]
+        turn_tokens = sum(message_tokens(m) for m in turn)
+        if used + turn_tokens > buffer_budget:
+            break
+        keep_from = boundaries[i]
+        used += turn_tokens
+
+    return history[keep_from:] + [{"role": "user", "content": user_input}]
 
 
 # --- Semantic recall ---
@@ -301,7 +372,7 @@ async def main():
     start_sandbox(os.getcwd())
     atexit.register(stop_sandbox)
 
-    messages = load_messages()
+    history = load_messages()
     recall_entries = load_recall()
 
     while True:
@@ -316,14 +387,13 @@ async def main():
         else:
             system = BASE_SYSTEM
 
-        messages.append({"role": "user", "content": user_input})
-        messages = await trim_to_budget(messages, CONTEXT_BUDGET, system)
+        messages = assemble(user_input, system, history)
         turn_start = len(messages) - 1
 
         while True:
             response = await client.messages.create(
                 model=MODEL,
-                max_tokens=1024,
+                max_tokens=MAX_RESPONSE_TOKENS,
                 system=system,
                 messages=messages,
                 tools=TOOL_SCHEMAS,
@@ -345,7 +415,8 @@ async def main():
                             for c, o in zip(tool_calls, outputs)],
             })
 
-        save_messages(messages)
+        history = messages
+        save_messages(history)
 
         turn_messages = messages[turn_start:]
         summary = await summarize_turn(turn_messages)

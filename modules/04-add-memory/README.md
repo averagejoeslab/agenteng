@@ -71,64 +71,102 @@ That's persistence. Restart the chatbot and the prior conversation comes back.
 
 The context window is a budget of tokens. Each Claude Sonnet 4.5 request can carry up to 200,000 input tokens; with 1M context enabled, up to 1,000,000. A long conversation eventually exceeds whatever budget you've set.
 
-Two pieces are needed:
+The trick is to **compute the budget upfront** — once, in one pass — rather than blindly cramming everything in and hoping it fits. The math is straightforward.
 
-1. **Count the tokens in the current request.**
-2. **If over budget, drop old turns.** But not arbitrarily — drop at *safe boundaries*.
+### The budget formula
 
-### Counting tokens
+Every request to the model consumes tokens from four places:
 
-The Anthropic API has a `count_tokens` endpoint that returns the exact input-token count for a given request:
+| What | Why it costs |
+|---|---|
+| `system` prompt | Sent every call |
+| `tools` schemas | Sent every call (when tools are enabled) |
+| The new `user` input | What the user just typed |
+| Past conversation `messages` | The history you're carrying forward |
 
-```python
-count = client.messages.count_tokens(
-    model=MODEL,
-    system=system,
-    messages=messages,
-)
-print(count.input_tokens)
+Plus the model needs room to *write its response*. That carve-out is the `max_tokens` you pass to `messages.create`.
+
+So the past-conversation budget is whatever's left:
+
+```
+past_turn_budget = CONTEXT_BUDGET
+                 - MAX_RESPONSE_TOKENS
+                 - tokens(system)
+                 - tokens(tools)         # 0 for a chatbot
+                 - tokens(user_input)
 ```
 
-Calling `count_tokens` is far cheaper than calling `messages.create` and lets the chatbot check its own size before sending.
+`CONTEXT_BUDGET` is a number you pick *below* the model's hard limit — `150_000` for Sonnet 4.5 standard context leaves comfortable headroom for both your overhead estimate and the model's response.
 
-### Dropping at safe boundaries
+### Counting tokens (locally)
 
-A naive trim might drop the first message of the list. For a chatbot that's mostly fine, but the rule generalizes badly to richer message shapes (which we'll add in the next module). The safe rule: **only trim at the start of a fresh user turn**.
-
-For a chatbot, every user message is a safe boundary because each `user` entry is a plain string:
+You don't need an API round-trip per turn to count tokens. A char-based approximation is good enough for a budget — Claude is around 4 characters per token for English, and the budget already has slack:
 
 ```python
-def find_safe_truncation_point(messages: list, drop_n: int = 1) -> int:
-    boundaries = [i for i, msg in enumerate(messages) if msg["role"] == "user"]
-    if drop_n >= len(boundaries):
-        return boundaries[-1] if boundaries else 0
-    return boundaries[drop_n]
+def approx_tokens(value) -> int:
+    """~4 chars/token for English. Local and free; trades a few percent
+    of accuracy for zero API cost."""
+    if isinstance(value, str):
+        return len(value) // 4
+    return len(json.dumps(value, default=_serialize)) // 4
 
 
-def trim_to_budget(messages: list, budget: int, system: str) -> list:
-    while True:
-        count = client.messages.count_tokens(
-            model=MODEL, system=system, messages=messages,
-        )
-        if count.input_tokens <= budget or len(messages) <= 1:
-            return messages
-        truncate_at = find_safe_truncation_point(messages, drop_n=1)
-        if truncate_at == 0:
-            return messages
-        messages = messages[truncate_at:]
+def message_tokens(msg) -> int:
+    return approx_tokens(msg["content"]) + 5  # role overhead
 ```
-
-`trim_to_budget` is a loop: count, drop one turn, count again, until under budget. Call it after appending the new user message and before the model call:
-
-```python
-messages.append({"role": "user", "content": user_input})
-messages = trim_to_budget(messages, CONTEXT_BUDGET, system)
-```
-
-Pick the budget below the model's hard limit. `150_000` for Sonnet 4.5 standard context leaves room for the model's response.
 
 > [!NOTE]
-> The next module adds tools, which means messages can carry `tool_use` and `tool_result` blocks. Eviction has to skip user messages that are *replies* to tool calls — splitting a tool_use/tool_result pair makes the API reject the request. We'll extend `find_safe_truncation_point` then.
+> The Anthropic API also exposes a `count_tokens` endpoint that's exact for Claude. It costs an API round-trip per call, which adds latency and cost. For a budget that already runs at ~75% of the hard limit, the local approximation wins on simplicity. Use `count_tokens` when you need exactness — for example, to bill users on token cost.
+
+### Walking turns newest-first
+
+Once the budget is known, fill the buffer in one pass: walk past turns from newest to oldest, summing their tokens, until the next one wouldn't fit.
+
+For a chatbot, every user message is a turn boundary (each `user` entry is a plain string — no tool_result replies yet):
+
+```python
+def find_turn_boundaries(messages: list) -> list:
+    return [i for i, msg in enumerate(messages) if msg["role"] == "user"]
+
+
+def assemble(user_input: str, system: str, history: list) -> list:
+    """Compute the budget upfront and fill the buffer newest-first to fit."""
+    fixed_tokens = (
+        MAX_RESPONSE_TOKENS
+        + approx_tokens(system)
+        + approx_tokens(user_input)
+    )
+    buffer_budget = CONTEXT_BUDGET - fixed_tokens
+    if buffer_budget <= 0:
+        return [{"role": "user", "content": user_input}]
+
+    boundaries = find_turn_boundaries(history) + [len(history)]
+    used = 0
+    keep_from = len(history)
+    for i in range(len(boundaries) - 2, -1, -1):
+        turn = history[boundaries[i]:boundaries[i + 1]]
+        turn_tokens = sum(message_tokens(m) for m in turn)
+        if used + turn_tokens > buffer_budget:
+            break
+        keep_from = boundaries[i]
+        used += turn_tokens
+
+    return history[keep_from:] + [{"role": "user", "content": user_input}]
+```
+
+`assemble` takes the user's new input, the system prompt, and the persisted history; returns the messages list to send to the model. One pass, no iterative trimming.
+
+Wire it into the loop:
+
+```python
+messages = assemble(user_input, system, history)
+response = client.messages.create(model=MODEL, system=system, messages=messages, ...)
+# ... append assistant reply ...
+history = messages  # the assembled buffer becomes the next iteration's input
+```
+
+> [!NOTE]
+> The next module adds tools, which means messages can carry `tool_use` and `tool_result` blocks. Splitting a `tool_use`/`tool_result` pair across an eviction boundary makes the API reject the request — so `find_turn_boundaries` extends to skip user messages that are *replies* to tool calls. We'll do that in the next module.
 
 ## Semantic recall
 
