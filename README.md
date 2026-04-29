@@ -32,16 +32,17 @@ Below are simple diagrams of the two types of agentic systems.
 
 ```mermaid
 flowchart LR
-    W1[LLM] --> W2[LLM] --> W3[LLM]
+    In[Input] --> W1[LLM] --> W2[LLM] --> W3[LLM] --> Out[Output]
 ```
 
 **Agents** — systems where **LLMs dynamically direct their own path through the control flow**. The model decides the sequence.
 
 ```mermaid
 flowchart LR
-    A1[LLM] --> A2{Tool?}
+    In[Input] --> A1[LLM]
+    A1 --> A2{Tool?}
     A2 -->|yes| A3[Execute] --> A1
-    A2 -->|no| A4[Done]
+    A2 -->|no| Out[Output]
 ```
 
 Below are more comprehensive diagrams of the two types of agentic systems.
@@ -63,6 +64,9 @@ flowchart LR
     R --> H1[Handler A]
     R --> H2[Handler B]
     R --> H3[Handler C]
+    H1 --> Out[Output]
+    H2 --> Out
+    H3 --> Out
 ```
 
 **Parallelization** — Run N LLM calls in parallel → aggregate. Example: N perspectives on one question.
@@ -75,6 +79,7 @@ flowchart LR
     A --> Agg[Aggregate]
     B --> Agg
     C --> Agg
+    Agg --> Out[Output]
 ```
 
 **Orchestrator-workers** — One LLM splits work → workers handle sub-tasks. Example: research report with multiple sections.
@@ -88,6 +93,7 @@ flowchart LR
     W1 --> S[Synthesize]
     W2 --> S
     W3 --> S
+    S --> Out[Output]
 ```
 
 **Evaluator-optimizer** — Generator → Evaluator → loop until good. Example: draft with a quality-gate loop.
@@ -108,11 +114,11 @@ Workflows are a catalog of orchestration shapes. Agents are **one pattern** — 
 
 ```mermaid
 flowchart LR
-    Task[User task] --> LLM[LLM]
+    In[Input] --> LLM[LLM]
     LLM --> Q{Tool call?}
     Q -->|yes| Act[Execute tool<br/>+ observe result]
     Act --> LLM
-    Q -->|no| Done[Done]
+    Q -->|no| Out[Output]
 ```
 
 ## Composition
