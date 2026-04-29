@@ -14,7 +14,7 @@ This is the trick that makes a multi-turn conversation possible without any serv
 
 ## The chatbot
 
-A `while True` around the API call, with a list that grows on each turn:
+A `while True` around the API call, with a list that grows on each turn. Module 2 introduced streaming for UX — we use it here so each reply renders token-by-token instead of as one delayed block:
 
 ```python
 import os
@@ -33,22 +33,25 @@ while True:
 
     messages.append({"role": "user", "content": user_input})
 
-    response = client.messages.create(
+    with client.messages.stream(
         model="claude-sonnet-4-5",
         max_tokens=1024,
         system="You are a helpful assistant.",
         messages=messages,
-    )
+    ) as stream:
+        for text in stream.text_stream:
+            print(text, end="", flush=True)
+        print()
+        response = stream.get_final_message()
 
-    assistant_text = response.content[0].text
-    messages.append({"role": "assistant", "content": assistant_text})
-    print(assistant_text)
+    messages.append({"role": "assistant", "content": response.content[0].text})
 ```
 
-Two things to notice:
+Three things to notice:
 
 1. **Every turn sends the full history.** No server-side state — `messages` is the entire conversation each call.
-2. **Both roles get appended.** User input goes in before the call; the assistant's reply goes in after. The next turn sees both.
+2. **The stream prints text live; `get_final_message()` returns the structured response** at the end. We append the assistant's text to history from the captured response, not by buffering everything ourselves while streaming.
+3. **Both roles get appended.** User input goes in before the call; the assistant's reply goes in after. The next turn sees both.
 
 ## Run it
 

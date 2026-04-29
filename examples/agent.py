@@ -183,6 +183,19 @@ def _serialize(obj):
     raise TypeError(f"can't serialize {type(obj)}")
 
 
+def clean_assistant_content(blocks) -> list:
+    """Convert streamed Message.content blocks to API-input shape.
+    The streaming SDK attaches fields like `parsed_output` and `citations`
+    that the API rejects when sent back as input — keep only what's valid."""
+    cleaned = []
+    for block in blocks:
+        if block.type == "text":
+            cleaned.append({"type": "text", "text": block.text})
+        elif block.type == "tool_use":
+            cleaned.append({"type": "tool_use", "id": block.id, "name": block.name, "input": block.input})
+    return cleaned
+
+
 def load_messages() -> list:
     if not MESSAGES_FILE.exists():
         return []
@@ -349,18 +362,19 @@ async def main():
 
         # TAO loop
         while True:
-            response = await client.messages.create(
+            async with client.messages.stream(
                 model=MODEL,
                 max_tokens=MAX_RESPONSE_TOKENS,
                 system=system,
                 messages=messages,
                 tools=TOOL_SCHEMAS,
-            )
-            messages.append({"role": "assistant", "content": response.content})
+            ) as stream:
+                async for text in stream.text_stream:
+                    print(text, end="", flush=True)
+                print()
+                response = await stream.get_final_message()
 
-            for block in response.content:
-                if block.type == "text":
-                    print(block.text)
+            messages.append({"role": "assistant", "content": clean_assistant_content(response.content)})
 
             tool_calls = [b for b in response.content if b.type == "tool_use"]
             if not tool_calls:

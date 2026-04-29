@@ -160,8 +160,14 @@ Wire it into the loop:
 
 ```python
 messages = assemble(user_input, system, history)
-response = client.messages.create(model=MODEL, system=system, messages=messages, ...)
-# ... append assistant reply ...
+
+with client.messages.stream(model=MODEL, system=system, messages=messages, ...) as stream:
+    for text in stream.text_stream:
+        print(text, end="", flush=True)
+    print()
+    response = stream.get_final_message()
+
+messages.append({"role": "assistant", "content": response.content[0].text})
 history = messages  # the assembled buffer becomes the next iteration's input
 ```
 

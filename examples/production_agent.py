@@ -323,6 +323,17 @@ def _serialize(obj):
     raise TypeError(f"can't serialize {type(obj)}")
 
 
+def clean_assistant_content(blocks) -> list:
+    """Strip SDK-internal fields from streamed Message blocks."""
+    cleaned = []
+    for block in blocks:
+        if block.type == "text":
+            cleaned.append({"type": "text", "text": block.text})
+        elif block.type == "tool_use":
+            cleaned.append({"type": "tool_use", "id": block.id, "name": block.name, "input": block.input})
+    return cleaned
+
+
 def load_messages() -> list:
     if not MESSAGES_FILE.exists():
         return []
@@ -525,7 +536,9 @@ async def main():
                         messages=messages,
                         tools=ctx["tools"],
                     ) as stream:
-                        await stream.until_done()
+                        async for text in stream.text_stream:
+                            print(text, end="", flush=True)
+                        print()
                         response = await stream.get_final_message()
                     llm_rec["attributes"].update({
                         "model": MODEL,
@@ -534,14 +547,11 @@ async def main():
                     })
                     llm_span_id = llm_rec["span_id"]
 
-                messages.append({"role": "assistant", "content": response.content})
+                messages.append({"role": "assistant", "content": clean_assistant_content(response.content)})
 
                 tool_calls = [b for b in response.content if b.type == "tool_use"]
 
                 if not tool_calls:
-                    for block in response.content:
-                        if block.type == "text":
-                            print(block.text)
                     break
 
                 if has_dangerous(tool_calls):

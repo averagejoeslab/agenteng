@@ -192,15 +192,18 @@ def main():
         messages = assemble(user_input, system, history)
         turn_start = len(messages) - 1
 
-        response = client.messages.create(
+        with client.messages.stream(
             model=MODEL,
             max_tokens=MAX_RESPONSE_TOKENS,
             system=system,
             messages=messages,
-        )
-        assistant_text = response.content[0].text
-        messages.append({"role": "assistant", "content": assistant_text})
-        print(assistant_text)
+        ) as stream:
+            for text in stream.text_stream:
+                print(text, end="", flush=True)
+            print()
+            response = stream.get_final_message()
+
+        messages.append({"role": "assistant", "content": response.content[0].text})
 
         # Append the new turn (user + assistant) to persistent history.
         history = messages

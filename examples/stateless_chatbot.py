@@ -15,13 +15,15 @@ while True:
 
     messages.append({"role": "user", "content": user_input})
 
-    response = client.messages.create(
+    with client.messages.stream(
         model="claude-sonnet-4-5",
         max_tokens=1024,
         system="You are a helpful assistant.",
         messages=messages,
-    )
+    ) as stream:
+        for text in stream.text_stream:
+            print(text, end="", flush=True)
+        print()
+        response = stream.get_final_message()
 
-    assistant_text = response.content[0].text
-    messages.append({"role": "assistant", "content": assistant_text})
-    print(assistant_text)
+    messages.append({"role": "assistant", "content": response.content[0].text})

@@ -95,7 +95,7 @@ This is a **workflow** — your code decides the sequence (call → tool → cal
 
 ## Wrap it in a loop
 
-Replace the fixed two calls with a loop. Each iteration: call the model. If it asked for a tool, run it and loop again. If it didn't, the turn is over.
+Replace the fixed two calls with a loop. Each iteration: call the model. If it asked for a tool, run it and loop again. If it didn't, the turn is over. We use `messages.stream` (introduced in Module 2) so the model's text streams live; `get_final_message()` then returns the structured response so we can dispatch tool calls from it:
 
 ```python
 while True:
@@ -107,19 +107,21 @@ while True:
 
     # The TAO loop
     while True:
-        # THINK: call the model
-        response = client.messages.create(
+        # THINK: call the model — stream the text for UX, then capture the
+        # final structured response (with any tool_use blocks).
+        with client.messages.stream(
             model="claude-sonnet-4-5",
             max_tokens=1024,
             system="You are a helpful coding assistant.",
             messages=messages,
             tools=tools,
-        )
-        messages.append({"role": "assistant", "content": response.content})
+        ) as stream:
+            for text in stream.text_stream:
+                print(text, end="", flush=True)
+            print()
+            response = stream.get_final_message()
 
-        for block in response.content:
-            if block.type == "text":
-                print(block.text)
+        messages.append({"role": "assistant", "content": response.content})
 
         tool_calls = [b for b in response.content if b.type == "tool_use"]
         if not tool_calls:
@@ -137,6 +139,8 @@ while True:
         # OBSERVE: feed results back as the next user message
         messages.append({"role": "user", "content": results})
 ```
+
+The streaming context manager is what makes "stream for UX, dispatch tools afterward" work. The SDK accumulates events as they arrive; `text_stream` yields the *text* deltas (skipping `tool_use` events); when the iterator is exhausted, `get_final_message()` returns the complete `Message` with all blocks — the same shape you'd get from `messages.create`. There's no race; tools are dispatched only after the model is done.
 
 Two loops, nested:
 

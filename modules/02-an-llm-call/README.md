@@ -120,13 +120,13 @@ The response materializes a few words at a time rather than appearing all at onc
 
 ## When you need each
 
-| Use case | Sync `messages.create` | Async streaming |
+| Use case | `messages.create` | `messages.stream` |
 |---|---|---|
 | One-off scripts where you just need the answer | ✓ | overkill |
-| Interactive UIs displaying long responses | full-response wait per call | tokens land live |
-| Agents that need the full response before deciding what to do | ✓ | doesn't fit — you can't dispatch tools mid-stream |
+| Interactive UIs displaying responses | full-response wait per call | tokens land live |
+| Agents that dispatch tools after the model is done | ✓ | ✓ — stream the text for UX, then `await stream.get_final_message()` for the structured response |
 
-The agent we'll build doesn't stream — it needs the full response to detect tool requests before acting — but you've now seen `async`/`await` in a context where its purpose is concrete.
+The original "streaming doesn't fit for agents" is a half-truth. You can't dispatch tools *mid-stream*, but nothing stops you from streaming the model's text output for UX while the SDK collects the full structured response in the background. When the stream finishes, `get_final_message()` returns the same `Message` shape you'd get from `messages.create` — including `tool_use` blocks. **Every example downstream of this module streams.** The chatbots stream their text and that's the end of the turn; the agents stream the model's narration, then wait for the final message and dispatch tool calls from it.
 
 ## What's missing
 

@@ -175,7 +175,7 @@ The curriculum is one straight line: start with a single LLM call and build outw
 | 7 | [Add guardrails](./modules/07-add-guardrails/) — approval gates, loop bounds, retry/backoff *(stubbed)* | [`safe_agent.py`](./examples/safe_agent.py) |
 | 8 | [Add observability](./modules/08-add-observability/) — structured spans, JSONL traces, replay *(stubbed)* | [`traced_agent.py`](./examples/traced_agent.py) |
 | 9 | [Add evaluation](./modules/09-add-evaluation/) — task suites, LLM-as-judge, regression testing *(stubbed)* | [`evals/`](./evals/) |
-| 10 | [Add performance](./modules/10-add-performance/) — prompt caching, tool caching, threading, streaming, structured prompts, `assemble()` *(stubbed)* | [`production_agent.py`](./examples/production_agent.py) |
+| 10 | [Add performance](./modules/10-add-performance/) — prompt caching, tool caching, threading, structured prompts, `assemble()` *(stubbed)* | [`production_agent.py`](./examples/production_agent.py) |
 
 Modules 1-5 are written end-to-end. Modules 6-10 are stubbed; their checkpoints in [`examples/`](./examples/) already implement what each one will describe — feel free to run those in the meantime.
 
