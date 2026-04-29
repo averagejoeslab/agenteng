@@ -1,6 +1,6 @@
 # What is an agent?
 
-An agent is an LLM in a loop with tools, where the LLM dynamically directs its own path through the control flow. This module breaks that down into the three components and shows what each looks like.
+An agent is system that can think, act, and observe without human intervention.
 
 ## The three components
 

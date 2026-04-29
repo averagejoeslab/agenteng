@@ -8,19 +8,19 @@ A framework-free take on **agentic engineering**.
 
 Working in this discipline involves the following items:
 
+- **Selecting the model** — the model to use for the system.
 - **Building the control flow** — the control flow determines the path the system takes
-- **Designing tools** — what capabilities the system has, at what granularity, with what error semantics.
 - **Architecting memory** — what's remembered, when it's remembered, and how it's retrieved
 - **Managing context** — the context window is a budget of tokens; determine what goes into context and what gets evicted.
+- **Designing tools** — what capabilities the system has, at what granularity, with what error semantics.
 - **Handling safety/guardrails** — identity and access management, sandboxing, input/output detection, human approval gates, etc.
 - **Setting up observability** — structured traces of every LLM call, tool call, and state transition to help with debugging and monitoring.
 - **Building evaluations** — to benchmark the system's performance and ensure it is meeting the desired goals.
-- **Managing cost and latency** — optimize costs and latency by caching, batching, model routing, parallelization, compression, etc.
-- **Tuning prompts and context** — behavioral optimization via tuning the system prompt and context management.
+- **Optimizing the system** — optimize costs and latency by caching, batching, model routing, parallelization, compression. And tuning the system prompt and context management for behavioral optimization.
 
 ## What are agentic systems?
 
-The idea of agentic systems come from cognitive science, and is used to describe systems that can act on their own, without human intervention. In modern agentic systems, this agency is provided by an LLM.
+The idea of agentic systems comes from cognitive science, and is used to describe systems that can act on their own, without human intervention. In modern agentic systems, this agency is provided by an LLM. An modern agentic system coordinates LLM calls to accomplish a goal without human intervention.
 
 ## Types of agentic systems
 
@@ -28,14 +28,14 @@ In my opinion, agentic systems come in two forms: workflows and agents, as defin
 
 Below are simple diagrams of the two types of agentic systems.
 
-**Workflows** — systems where LLMs and tools are orchestrated through **predefined code paths**. Your code decides the sequence of steps and the model follows.
+**Workflows** — systems where LLMs and tools are orchestrated through **predefined code paths**. Prescriptive code paths define the sequence of steps that will be taken to accomplish a goal.
 
 ```mermaid
 flowchart LR
     In[Input] --> W1[LLM] --> W2[LLM] --> W3[LLM] --> Out[Output]
 ```
 
-**Agents** — systems where **LLMs dynamically direct their own path through the control flow**. The model decides the sequence.
+**Agents** — systems where **LLMs dynamically direct their own path through the control flow**. The model decides the sequence of steps to take to accomplish a goal, no prescriptive code paths are followed and the model exercises it's probability distribution to determine the next step.
 
 ```mermaid
 flowchart LR
@@ -108,7 +108,7 @@ flowchart LR
 
 ### Common agent patterns
 
-Workflows are a catalog of orchestration shapes. Agents are **one pattern** — an autonomous loop — and that's the whole list. What varies between agents in practice is the environment, the toolkit, and whether one of the tools happens to be another agent.
+Workflows are a catalog of orchestration shapes. Agents are **one pattern** — an autonomous loop — and that's the whole list. What varies between agents in practice is the environment, memory and context management, the toolkit, and whether one of the tools happens to be another agent. We call these things harnesses and it is a specialization within the field of agentic engineering where you focus on just building a specific harness for a specific use case.
 
 **Autonomous agent** — an LLM in a loop with tools, choosing what to do next based on what it observes. This is the pattern this repo builds.
 
@@ -130,11 +130,9 @@ By composing the above workflows and agent patterns, you can build multi-agent s
 
 ## The Average Joes Lab stance: purist agents only
 
-We believe in the [Anthropic model](https://www.anthropic.com/engineering/building-effective-agents): **a real agent has autonomy over its own control flow.** The model decides what tool to call, what to do with the result, and when the task is done.
+We believe in the [Anthropic model](https://www.anthropic.com/engineering/building-effective-agents): **a real agent has autonomy over its own control flow** where the model decides what tool to call, what to do with the result, and when the task is done. Being an agentic engineer that builds agents is the primary focus of this repository.
 
-**A workflow is an LLM on rails it can't get off of.** Your code lays the track; the model fills in text at each stop.
-
-This content sticks to that strict definition: only systems with autonomous control flow count as agents. Workflows are outside the scope of what follows.
+Workflows are outside the scope of what follows.
 
 ```mermaid
 flowchart LR
