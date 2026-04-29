@@ -26,7 +26,7 @@ echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env
 
 ## The sync version
 
-Create `main.py`:
+Create `llm_call.py`:
 
 ```python
 import os
@@ -50,7 +50,7 @@ print(response.content[0].text)
 Run it:
 
 ```bash
-uv run main.py
+uv run llm_call.py
 ```
 
 Expected output:
@@ -112,7 +112,7 @@ The shape is the same as the sync call — same `model`, same `messages`, same r
 Run it:
 
 ```bash
-uv run main.py
+uv run llm_call.py
 ```
 
 The response materializes a few words at a time rather than appearing all at once.

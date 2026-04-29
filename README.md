@@ -167,11 +167,11 @@ The curriculum is one straight line: start with a single LLM call and build outw
 | # | Module | Checkpoint |
 |---|---|---|
 | 1 | [What is an agent?](./modules/01-what-is-an-agent/) — concept, three components, end-to-end sketch | *(no code)* |
-| 2 | [An LLM call](./modules/02-an-llm-call/) — the Messages API; sync and async streaming | [`llmcall.py`](./examples/llmcall.py) |
-| 3 | [Add a loop](./modules/03-add-a-loop/) — stateful conversation; the chatbot | [`chatbot.py`](./examples/chatbot.py) |
-| 4 | [Add tools](./modules/04-add-tools/) — one tool, the TAO loop, tool design, registry, toolkit, executor, async parallel dispatch | [`agent.py`](./examples/agent.py) |
-| 5 | [Add memory](./modules/05-add-memory/) — persistence, token budget, semantic recall | [`memory_agent.py`](./examples/memory_agent.py) |
-| 6 | [Add sandboxing](./modules/06-add-sandboxing/) — Docker isolation for the `bash` tool *(stubbed)* | [`safe_agent.py`](./examples/safe_agent.py) |
+| 2 | [An LLM call](./modules/02-an-llm-call/) — the Messages API; sync and async streaming | [`llm_call.py`](./examples/llm_call.py) |
+| 3 | [Add a loop](./modules/03-add-a-loop/) — multi-turn conversation; the stateless chatbot | [`stateless_chatbot.py`](./examples/stateless_chatbot.py) |
+| 4 | [Add memory](./modules/04-add-memory/) — persistence, token budget, semantic recall; the stateful chatbot | [`stateful_chatbot.py`](./examples/stateful_chatbot.py) |
+| 5 | [Add tools](./modules/05-add-tools/) — one tool, the TAO loop, tool design, registry, toolkit, executor, async parallel dispatch; the stateful agent | [`agent.py`](./examples/agent.py) |
+| 6 | [Add sandboxing](./modules/06-add-sandboxing/) — Docker isolation for the `bash` tool *(stubbed)* | [`sandbox_agent.py`](./examples/sandbox_agent.py) |
 | 7 | [Add evaluation](./modules/07-add-evaluation/) — task suites, LLM-as-judge, regression testing *(stubbed)* | [`evals/`](./evals/) |
 | 8 | [Add guardrails](./modules/08-add-guardrails/) — approval gates, loop bounds, retry/backoff *(stubbed)* | [`safe_agent.py`](./examples/safe_agent.py) |
 | 9 | [Add observability](./modules/09-add-observability/) — structured spans, JSONL traces, replay *(stubbed)* | [`traced_agent.py`](./examples/traced_agent.py) |

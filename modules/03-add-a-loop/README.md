@@ -52,11 +52,11 @@ Two things to notice:
 
 ## Run it
 
-The runnable version is [`examples/chatbot.py`](../../examples/chatbot.py).
+The runnable version is [`examples/stateless_chatbot.py`](../../examples/stateless_chatbot.py).
 
 ```bash
 cd examples
-uv run chatbot.py
+uv run stateless_chatbot.py
 ```
 
 ```
@@ -67,14 +67,15 @@ Your name is Sam.
 ❯ /q
 ```
 
-Quit the program and the conversation is gone — `messages` was just an in-memory list. Persistence is Module 5's problem.
+Quit the program and the conversation is gone — `messages` was just an in-memory list. The chatbot is **stateless** across sessions. Making it stateful is Module 4's problem.
 
-## Why this isn't an agent
+## What's missing
 
-The chatbot can talk forever, but it can't *do* anything. It can describe how to read a file, explain what `git status` would output, propose what a config change might look like — but it cannot read, run, or write. It only emits text.
+- **Nothing survives a restart.** The conversation lives in a process variable; quit the program and it evaporates.
+- **The chatbot can only emit text.** It can describe how to read a file, explain what `git status` would output, propose a config change — but it cannot read, run, or write anything.
 
-To act, the model needs **tools**: functions your code is willing to run on the model's behalf. That's the next module — and it's the moment the chatbot becomes an agent.
+The first is memory's problem (Module 4). The second is tools' problem (Module 5). Memory comes first because it makes the chatbot useful across sessions even before it can act.
 
 ---
 
-**Next:** [Module 4: Add tools](../04-add-tools/)
+**Next:** [Module 4: Add memory](../04-add-memory/)

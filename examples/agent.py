@@ -1,14 +1,28 @@
 import os
 import re
+import json
 import asyncio
 import subprocess
 import glob as _glob
+from pathlib import Path
 from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
+from sentence_transformers import SentenceTransformer
+import numpy as np
 
 load_dotenv()
 
 client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+MODEL = "claude-sonnet-4-5"
+SUMMARY_MODEL = "claude-haiku-4-5"
+CONTEXT_BUDGET = 150_000
+RECALL_K = 3
+RECALL_THRESHOLD = 0.3
+
+STATE_DIR = Path.home() / ".agent"
+MESSAGES_FILE = STATE_DIR / "messages.json"
+RECALL_FILE = STATE_DIR / "recall.json"
 
 
 # --- Tools ---
@@ -62,9 +76,7 @@ async def glob(pattern: str) -> str:
 
 async def bash(cmd: str) -> str:
     try:
-        result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, timeout=30,
-        )
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
     except subprocess.TimeoutExpired:
         return "error: command timed out after 30s"
     out = result.stdout + result.stderr
@@ -96,18 +108,11 @@ TOOLS = {
 def build_tool_schemas(tools):
     schemas = []
     for name, meta in tools.items():
-        properties = {
-            p: {"type": "string", "description": desc}
-            for p, desc in meta["params"].items()
-        }
+        properties = {p: {"type": "string", "description": desc} for p, desc in meta["params"].items()}
         schemas.append({
             "name": name,
             "description": meta["description"],
-            "input_schema": {
-                "type": "object",
-                "properties": properties,
-                "required": list(meta["params"]),
-            },
+            "input_schema": {"type": "object", "properties": properties, "required": list(meta["params"])},
         })
     return schemas
 
@@ -126,23 +131,154 @@ async def execute_tool(name: str, input: dict) -> str:
 TOOL_SCHEMAS = build_tool_schemas(TOOLS)
 
 
-# --- Loop ---
+# --- Persistence ---
+
+def _serialize(obj):
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump()
+    raise TypeError(f"can't serialize {type(obj)}")
+
+
+def load_messages() -> list:
+    if not MESSAGES_FILE.exists():
+        return []
+    try:
+        return json.loads(MESSAGES_FILE.read_text())
+    except json.JSONDecodeError as e:
+        print(f"warning: {MESSAGES_FILE} is corrupt ({e}); starting fresh")
+        return []
+
+
+def save_messages(messages: list) -> None:
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    MESSAGES_FILE.write_text(json.dumps(messages, default=_serialize, indent=2))
+
+
+# --- Token budget ---
+
+def _is_tool_result(block) -> bool:
+    if isinstance(block, dict):
+        return block.get("type") == "tool_result"
+    return getattr(block, "type", None) == "tool_result"
+
+
+def find_safe_truncation_point(messages: list, drop_n: int = 1) -> int:
+    boundaries = []
+    for i, msg in enumerate(messages):
+        if msg["role"] != "user":
+            continue
+        content = msg["content"]
+        if isinstance(content, str):
+            boundaries.append(i)
+        elif not any(_is_tool_result(b) for b in content):
+            boundaries.append(i)
+    if drop_n >= len(boundaries):
+        return boundaries[-1] if boundaries else 0
+    return boundaries[drop_n]
+
+
+async def trim_to_budget(messages: list, budget: int, system: str) -> list:
+    while True:
+        count = await client.messages.count_tokens(
+            model=MODEL, system=system, messages=messages, tools=TOOL_SCHEMAS,
+        )
+        if count.input_tokens <= budget or len(messages) <= 1:
+            return messages
+        truncate_at = find_safe_truncation_point(messages, drop_n=1)
+        if truncate_at == 0:
+            return messages
+        messages = messages[truncate_at:]
+
+
+# --- Semantic recall ---
+
+print("Loading embedding model...")
+_embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+
+def embed(text: str) -> np.ndarray:
+    return _embed_model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
+
+
+def load_recall() -> list[dict]:
+    if not RECALL_FILE.exists():
+        return []
+    try:
+        return json.loads(RECALL_FILE.read_text())
+    except json.JSONDecodeError:
+        return []
+
+
+def save_recall(entries: list[dict]) -> None:
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    RECALL_FILE.write_text(json.dumps(entries))
+
+
+def add_to_recall(text: str, entries: list[dict]) -> None:
+    vec = embed(text)
+    entries.append({"text": text, "embedding": vec.tolist()})
+    save_recall(entries)
+
+
+def recall(query: str, entries: list[dict], k: int = RECALL_K, threshold: float = RECALL_THRESHOLD) -> list[str]:
+    if not entries:
+        return []
+    q_vec = embed(query)
+    scored = []
+    for e in entries:
+        e_vec = np.array(e["embedding"])
+        score = float(np.dot(q_vec, e_vec))
+        scored.append((score, e["text"]))
+    scored.sort(reverse=True)
+    return [text for score, text in scored[:k] if score >= threshold]
+
+
+async def summarize_turn(turn_messages: list) -> str:
+    response = await client.messages.create(
+        model=SUMMARY_MODEL,
+        max_tokens=200,
+        system="You write one-paragraph summaries of agent conversations. Capture what the user asked and what was concluded or done. No fluff.",
+        messages=[{"role": "user",
+                   "content": f"Summarize this exchange:\n\n{json.dumps(turn_messages, default=_serialize)[:8000]}"}],
+    )
+    return response.content[0].text
+
+
+# --- Main loop ---
+
+BASE_SYSTEM = "You are a helpful coding assistant."
+
 
 async def main():
-    messages = []
+    messages = load_messages()
+    recall_entries = load_recall()
 
     while True:
         user_input = input("❯ ")
         if user_input.lower() in ("/q", "exit"):
             break
 
+        # Recall relevant memories
+        recalled = recall(user_input, recall_entries)
+        if recalled:
+            memory_block = "\n\n".join(f"- {s}" for s in recalled)
+            system = f"{BASE_SYSTEM}\n\n## Relevant memory from past conversations\n\n{memory_block}"
+        else:
+            system = BASE_SYSTEM
+
         messages.append({"role": "user", "content": user_input})
 
+        # Trim to budget if needed
+        messages = await trim_to_budget(messages, CONTEXT_BUDGET, system)
+
+        turn_start = len(messages) - 1
+
+        # TAO loop
         while True:
             response = await client.messages.create(
-                model="claude-sonnet-4-5",
+                model=MODEL,
                 max_tokens=1024,
-                system="You are a helpful coding assistant.",
+                system=system,
                 messages=messages,
                 tools=TOOL_SCHEMAS,
             )
@@ -156,17 +292,19 @@ async def main():
             if not tool_calls:
                 break
 
-            outputs = await asyncio.gather(
-                *(execute_tool(c.name, c.input) for c in tool_calls)
-            )
-
+            outputs = await asyncio.gather(*(execute_tool(c.name, c.input) for c in tool_calls))
             messages.append({
                 "role": "user",
-                "content": [
-                    {"type": "tool_result", "tool_use_id": c.id, "content": o}
-                    for c, o in zip(tool_calls, outputs)
-                ],
+                "content": [{"type": "tool_result", "tool_use_id": c.id, "content": o}
+                            for c, o in zip(tool_calls, outputs)],
             })
+
+        save_messages(messages)
+
+        # Summarize this turn into long-term recall
+        turn_messages = messages[turn_start:]
+        summary = await summarize_turn(turn_messages)
+        add_to_recall(summary, recall_entries)
 
 
 asyncio.run(main())

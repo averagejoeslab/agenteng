@@ -1,6 +1,6 @@
 # Add tools
 
-Module 3's chatbot can talk but not act. Tools change that — they let the model ask your code to run a function on its behalf, see the result, and decide what to do next. **The chatbot becomes an agent the moment it gets tools and a loop to use them in.**
+Module 4's stateful chatbot can remember but not act. Tools change that — they let the model ask your code to run a function on its behalf, see the result, and decide what to do next. **The stateful chatbot becomes a stateful agent the moment it gets tools and a loop to use them in.**
 
 This module covers the whole arc:
 
@@ -12,7 +12,7 @@ This module covers the whole arc:
 6. **A central executor** — one place that handles errors for all tools.
 7. **Async + parallel dispatch** — run multiple tool calls concurrently.
 
-By the end you have [`examples/agent.py`](../../examples/agent.py) — the curriculum's first real agent.
+The persistence, budget, and recall machinery from Module 4 carries forward unchanged — the agent is stateful from the moment it's born. By the end you have [`examples/agent.py`](../../examples/agent.py).
 
 ## One tool
 
@@ -362,16 +362,44 @@ Try it on a real task:
 ❯ find all the TODOs in this codebase and write a summary to TODOS.md
 ```
 
-The model picks its own path: probably `glob` or `grep` first, maybe `read` on a few hot files, then `write`. Each tool call is one entry in the registry; the loop doesn't know or care how many there are. **This is what makes it an agent — the model, not your code, decides what comes next.**
+The model picks its own path: probably `glob` or `grep` first, maybe `read` on a few hot files, then `write`. Each tool call is one entry in the registry; the loop doesn't know or care how many there are. **This is what makes it an agent — the model, not your code, decides what comes next.** And because Module 4's persistence and recall machinery is still wired up, the agent remembers what it did across sessions — it's stateful from day one.
 
-At this point the agent is **in-memory only**. Within a session, `messages` grows and the agent reasons over the full history; on exit, everything it learned about your codebase evaporates. Making the agent **stateful** — recognized when you come back next week — is the next module.
+## One eviction tweak
+
+The persistence/budget/recall trio carries forward unchanged from Module 4 — except for one thing. Tool-using messages can carry `tool_result` blocks back as `user` messages, and splitting a `tool_use` / `tool_result` pair across an eviction boundary makes the API reject the request with a 400.
+
+`find_safe_truncation_point` extends to skip those:
+
+```python
+def _is_tool_result(block) -> bool:
+    if isinstance(block, dict):
+        return block.get("type") == "tool_result"
+    return getattr(block, "type", None) == "tool_result"
+
+
+def find_safe_truncation_point(messages: list, drop_n: int = 1) -> int:
+    boundaries = []
+    for i, msg in enumerate(messages):
+        if msg["role"] != "user":
+            continue
+        content = msg["content"]
+        if isinstance(content, str):
+            boundaries.append(i)
+        elif not any(_is_tool_result(b) for b in content):
+            boundaries.append(i)
+    if drop_n >= len(boundaries):
+        return boundaries[-1] if boundaries else 0
+    return boundaries[drop_n]
+```
+
+A user message with plain text is a safe boundary; one carrying tool results isn't.
 
 ## What's missing
 
-- **Nothing persists.** Quit the program and the entire conversation is gone — including everything the agent learned about your codebase.
-- **The context window will fill.** A long session will eventually overflow the model's input limit. Right now there's no answer to that.
-- **`bash` runs on your machine.** Anything the model can type, your shell will execute.
+- **`bash` runs on your machine.** Anything the model can type, your shell will execute. That's the next major problem.
+- **No safety guards on dangerous tools.** The model can call `write`, `edit`, or `bash` without the user being asked.
+- **The agent can loop forever.** A pathological turn could blow through your token budget without ever terminating.
 
 ---
 
-**Next:** [Module 5: Add memory](../05-add-memory/)
+**Next:** [Module 6: Add sandboxing](../06-add-sandboxing/)

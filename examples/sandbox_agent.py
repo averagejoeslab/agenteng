@@ -1,7 +1,9 @@
 import os
 import re
 import json
+import atexit
 import asyncio
+import secrets
 import subprocess
 import glob as _glob
 from pathlib import Path
@@ -19,10 +21,55 @@ SUMMARY_MODEL = "claude-haiku-4-5"
 CONTEXT_BUDGET = 150_000
 RECALL_K = 3
 RECALL_THRESHOLD = 0.3
+SANDBOX_IMAGE = "agenteng-sandbox"
 
-STATE_DIR = Path.home() / ".memory-agent"
+STATE_DIR = Path.home() / ".sandbox-agent"
 MESSAGES_FILE = STATE_DIR / "messages.json"
 RECALL_FILE = STATE_DIR / "recall.json"
+
+
+# --- Sandbox ---
+
+_sandbox_name: str | None = None
+
+
+def start_sandbox(workspace: str) -> None:
+    global _sandbox_name
+    inspect = subprocess.run(["docker", "image", "inspect", SANDBOX_IMAGE],
+                              capture_output=True)
+    if inspect.returncode != 0:
+        print(f"Building sandbox image '{SANDBOX_IMAGE}'...")
+        subprocess.run(
+            ["docker", "build", "-f", "Dockerfile.sandbox", "-t", SANDBOX_IMAGE, "."],
+            check=True,
+        )
+
+    _sandbox_name = f"sandbox-agent-{secrets.token_hex(8)}"
+    subprocess.run([
+        "docker", "run", "-d", "--rm",
+        "--name", _sandbox_name,
+        "--cap-drop", "ALL",
+        "--security-opt", "no-new-privileges",
+        "--network", "none",
+        "--read-only",
+        "--tmpfs", "/tmp:rw,noexec,nosuid,size=100m",
+        "-v", f"{workspace}:/workspace",
+        "-w", "/workspace",
+        "--memory", "512m",
+        "--cpus", "1.0",
+        "--pids-limit", "100",
+        "--user", "1000:1000",
+        SANDBOX_IMAGE,
+        "sleep", "infinity",
+    ], check=True, capture_output=True)
+
+
+def stop_sandbox():
+    if _sandbox_name:
+        subprocess.run(
+            ["docker", "stop", _sandbox_name],
+            check=False, capture_output=True, timeout=5,
+        )
 
 
 # --- Tools ---
@@ -76,7 +123,10 @@ async def glob(pattern: str) -> str:
 
 async def bash(cmd: str) -> str:
     try:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
+        result = subprocess.run(
+            ["docker", "exec", _sandbox_name, "bash", "-c", cmd],
+            capture_output=True, text=True, timeout=30,
+        )
     except subprocess.TimeoutExpired:
         return "error: command timed out after 30s"
     out = result.stdout + result.stderr
@@ -100,7 +150,7 @@ TOOLS = {
                          "path": "Directory to search under"}},
     "glob":  {"fn": glob,  "description": "Find files matching a glob pattern (use ** for recursive)",
               "params": {"pattern": "Glob pattern; use ** for recursive matches"}},
-    "bash":  {"fn": bash,  "description": "Run a shell command",
+    "bash":  {"fn": bash,  "description": "Run a shell command (sandboxed)",
               "params": {"cmd": "Shell command to run"}},
 }
 
@@ -153,8 +203,6 @@ def save_messages(messages: list) -> None:
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     MESSAGES_FILE.write_text(json.dumps(messages, default=_serialize, indent=2))
 
-
-# --- Token budget ---
 
 def _is_tool_result(block) -> bool:
     if isinstance(block, dict):
@@ -250,6 +298,9 @@ BASE_SYSTEM = "You are a helpful coding assistant."
 
 
 async def main():
+    start_sandbox(os.getcwd())
+    atexit.register(stop_sandbox)
+
     messages = load_messages()
     recall_entries = load_recall()
 
@@ -258,7 +309,6 @@ async def main():
         if user_input.lower() in ("/q", "exit"):
             break
 
-        # Recall relevant memories
         recalled = recall(user_input, recall_entries)
         if recalled:
             memory_block = "\n\n".join(f"- {s}" for s in recalled)
@@ -267,13 +317,9 @@ async def main():
             system = BASE_SYSTEM
 
         messages.append({"role": "user", "content": user_input})
-
-        # Trim to budget if needed
         messages = await trim_to_budget(messages, CONTEXT_BUDGET, system)
-
         turn_start = len(messages) - 1
 
-        # TAO loop
         while True:
             response = await client.messages.create(
                 model=MODEL,
@@ -301,7 +347,6 @@ async def main():
 
         save_messages(messages)
 
-        # Summarize this turn into long-term recall
         turn_messages = messages[turn_start:]
         summary = await summarize_turn(turn_messages)
         add_to_recall(summary, recall_entries)
