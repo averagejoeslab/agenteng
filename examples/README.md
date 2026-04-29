@@ -16,7 +16,7 @@ The `uv sync` pulls in `sentence-transformers` (used by `stateful_chatbot.py` an
 ## Run a script
 
 ```bash
-uv run llm_call.py            # or any other script
+uv run llm_call_async.py      # or any other script
 ```
 
 Run from `examples/` — the `.env` and `.venv` are resolved relative to this directory.
@@ -27,7 +27,7 @@ Each script is a strict superset of the previous one's capabilities.
 
 | # | Script | Module | Adds |
 |---|---|---|---|
-| 1 | [`llm_call.py`](./llm_call.py) | [2](../modules/02-an-llm-call/) | One LLM call — request in, response out |
+| 1 | [`llm_call_sync.py`](./llm_call_sync.py) / [`llm_call_async.py`](./llm_call_async.py) | [2](../modules/02-an-llm-call/) | One LLM call — sync `messages.create` and async streaming versions |
 | 2 | [`stateless_chatbot.py`](./stateless_chatbot.py) | [3](../modules/03-add-a-loop/) | A loop around the API call → multi-turn conversation, in-memory only |
 | 3 | [`stateful_chatbot.py`](./stateful_chatbot.py) | [4](../modules/04-add-memory/) | Persistence + token budget eviction + semantic recall |
 | 4 | [`agent.py`](./agent.py) | [5](../modules/05-add-tools/) | Tools + TAO loop + async parallel dispatch — stateful agent |

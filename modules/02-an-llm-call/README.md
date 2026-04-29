@@ -26,7 +26,7 @@ echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env
 
 ## The sync version
 
-Create `llm_call.py`:
+Create `llm_call_sync.py`:
 
 ```python
 import os
@@ -41,7 +41,7 @@ response = client.messages.create(
     max_tokens=1024,
     system="You are a helpful assistant.",
     messages=[
-        {"role": "user", "content": "What is 2 + 2?"}
+        {"role": "user", "content": "Write three sentences about agents."}
     ],
 )
 print(response.content[0].text)
@@ -50,16 +50,10 @@ print(response.content[0].text)
 Run it:
 
 ```bash
-uv run llm_call.py
+uv run llm_call_sync.py
 ```
 
-Expected output:
-
-```
-4
-```
-
-(Exact phrasing varies — models are non-deterministic.)
+You'll see the full three-sentence response print all at once after a short pause — the program waits for the entire reply before doing anything with it. Same prompt as the streaming version below; same final output. The only difference is *when* the text appears.
 
 ## What just happened
 
@@ -79,6 +73,8 @@ The code above waits for the full response before printing anything. For a short
 The Anthropic API supports streaming over the same Messages endpoint. Most SDKs expose it as an async iterable — your program loops over text chunks as they arrive, yielding control to the runtime between chunks. Every modern language has the same shape; the example below uses Python's `async`/`await`.
 
 ## The async streaming version
+
+Create `llm_call_async.py`:
 
 ```python
 import os
@@ -109,11 +105,8 @@ asyncio.run(main())
 
 The shape is the same as the sync call — same `model`, same `messages`, same response — except the SDK opens a streaming connection and the program loops over chunks instead of waiting for one return value. Each chunk is printed as it arrives.
 
-To try it, save the snippet as a separate file (the committed `examples/llm_call.py` keeps the sync version, since the rest of the curriculum doesn't need streaming):
-
 ```bash
-# save the snippet above as llm_call_stream.py, then:
-uv run llm_call_stream.py
+uv run llm_call_async.py
 ```
 
 The response materializes a few words at a time rather than appearing all at once.
@@ -130,7 +123,7 @@ The original "streaming doesn't fit for agents" is a half-truth. You can't dispa
 
 **Every example downstream of this module uses async streaming via `AsyncAnthropic`.** The chatbots in Modules 3-4 stream their text and that's the end of the turn; the agents in Modules 5+ stream the model's narration, then `await stream.get_final_message()` and dispatch tool calls from it. We commit to async early so the same shape holds from the chatbot through the production agent — no halfway sync detour to revisit later.
 
-The committed [`examples/llm_call.py`](../../examples/llm_call.py) keeps the simple sync version because the file's job is to introduce the API, not the streaming pattern. From `examples/stateless_chatbot.py` onward, every script is async-streaming.
+Both versions are committed at [`examples/llm_call_sync.py`](../../examples/llm_call_sync.py) and [`examples/llm_call_async.py`](../../examples/llm_call_async.py) — the sync one to anchor the API contract, the async one to set up the pattern the rest of the curriculum runs on. From `examples/stateless_chatbot.py` onward, every script follows the async-streaming shape.
 
 ## What's missing
 

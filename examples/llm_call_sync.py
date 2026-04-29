@@ -11,7 +11,7 @@ response = client.messages.create(
     max_tokens=1024,
     system="You are a helpful assistant.",
     messages=[
-        {"role": "user", "content": "What is 2 + 2?"}
+        {"role": "user", "content": "Write three sentences about agents."}
     ],
 )
 

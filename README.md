@@ -173,7 +173,7 @@ The curriculum is one straight line: start with a single LLM call and build outw
 | # | Module | Checkpoint |
 |---|---|---|
 | 1 | [What is an agent?](./modules/01-what-is-an-agent/) — concept, three components, end-to-end sketch | *(no code)* |
-| 2 | [An LLM call](./modules/02-an-llm-call/) — the Messages API; sync and async streaming | [`llm_call.py`](./examples/llm_call.py) |
+| 2 | [An LLM call](./modules/02-an-llm-call/) — the Messages API; sync and async streaming | [`llm_call_sync.py`](./examples/llm_call_sync.py), [`llm_call_async.py`](./examples/llm_call_async.py) |
 | 3 | [Add a loop](./modules/03-add-a-loop/) — multi-turn conversation; the stateless chatbot | [`stateless_chatbot.py`](./examples/stateless_chatbot.py) |
 | 4 | [Add memory](./modules/04-add-memory/) — persistence, token budget, semantic recall; the stateful chatbot | [`stateful_chatbot.py`](./examples/stateful_chatbot.py) |
 | 5 | [Add tools](./modules/05-add-tools/) — one tool, the TAO loop, tool design, registry, toolkit, executor, async parallel dispatch; the stateful agent | [`agent.py`](./examples/agent.py) |
