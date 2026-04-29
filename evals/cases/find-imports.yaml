@@ -1,6 +1,6 @@
 id: find-imports
-description: Agent identifies imports in basic-agent/main.py.
-input: "What does basic-agent/main.py import?"
+description: Agent identifies imports in chatbot.py.
+input: "What does chatbot.py import?"
 checks:
   - type: contains
     value: "anthropic"

@@ -6,7 +6,7 @@ When you quit the coding agent, everything it knew vanishes. Next session, it's 
 2. **Token budget** — the context window has a fixed size; eventually a long conversation overflows it. Trim old turns when needed.
 3. **Semantic recall** — even after trimming, useful context shouldn't be lost forever. Summarize each turn into a vector store and pull back relevant pieces by similarity.
 
-By the end you have [`agents/memory-agent`](../../agents/memory-agent/).
+By the end you have [`examples/memory_agent.py`](../../examples/memory_agent.py).
 
 ## Persistence
 
@@ -262,13 +262,13 @@ flowchart LR
     Sum --> Add[Add to recall]
 ```
 
-## Reference: memory-agent
+## Run it
 
-The end state is [`agents/memory-agent`](../../agents/memory-agent/) — same six tools as `coding-agent`, plus persistence, budget, and recall:
+The end state is [`examples/memory_agent.py`](../../examples/memory_agent.py) — same six tools as `agent.py`, plus persistence, budget, and recall:
 
 ```bash
-cd agents
-uv run memory-agent/main.py
+cd examples
+uv run memory_agent.py
 ```
 
 State lives in `~/.memory-agent/`:

@@ -1,19 +1,17 @@
 # evals
 
-The Part 6 artifact. An evaluation harness that runs YAML test cases against any agent in `agents/`, scores outputs (with code checks and LLM-as-judge), aggregates pass rates over multiple runs, and tracks regressions across timestamped result files.
-
-Built across Modules 18–19 (Part 6 of the curriculum).
+The Module 7 artifact. An evaluation harness that runs YAML test cases against any script in `examples/`, scores outputs (with code checks and LLM-as-judge), aggregates pass rates over multiple runs, and tracks regressions across timestamped result files.
 
 ## Run the suite
 
 From the repo root:
 
 ```bash
-# Default: runs against agents/coding-agent/main.py
+# Default: runs against examples/agent.py
 uv run evals/run.py
 
-# Or specify another agent:
-uv run evals/run.py agents/production-agent/main.py
+# Or specify another script:
+uv run evals/run.py examples/production_agent.py
 ```
 
 Each case runs N times (default 3) for stochastic averaging. Results land in `evals/results/<timestamp>.json`.

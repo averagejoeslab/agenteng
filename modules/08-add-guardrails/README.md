@@ -11,13 +11,13 @@ Sandboxing (Module 6) constrains *where* the agent can do damage. Guardrails con
 - **Loop bounds.** A `MAX_ITERATIONS` cap on the inner TAO loop, and what to feed back to the model when the cap trips.
 - **Retry and backoff.** Transient API errors (rate limits, 529s) shouldn't kill a long-running agent. Exponential backoff on the LLM call; a separate policy for tool errors (which the model handles itself by reading the error string).
 
-## Reference: safe-agent
+## Reference: safe_agent.py
 
-The end state still lives at [`agents/safe-agent`](../../agents/safe-agent/) — the same agent introduced in Module 6. Sandboxing and guardrails ship together as one cumulative artifact:
+The end state still lives at [`examples/safe_agent.py`](../../examples/safe_agent.py) — the same checkpoint introduced in Module 6. Sandboxing and guardrails ship together as one cumulative artifact:
 
 ```bash
-cd agents
-uv run safe-agent/main.py
+cd examples
+uv run safe_agent.py
 ```
 
 Try a `write` or `bash` call — the agent will pause and ask before executing.

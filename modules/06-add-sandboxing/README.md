@@ -13,13 +13,13 @@ The agent from Module 5 has a `bash` tool that runs commands directly on the hos
 - **Wiring `bash` into the container.** The tool builds the image on first run, then dispatches each command into a fresh container.
 - **What's still on the host.** `read`, `write`, `edit`, `grep`, `glob` still touch the host filesystem; only `bash` is sandboxed. The discussion of where to draw that line.
 
-## Reference: safe-agent
+## Reference: safe_agent.py
 
-The end state for this module already lives at [`agents/safe-agent`](../../agents/safe-agent/). It runs `bash` inside a Docker container built from [`agents/Dockerfile.sandbox`](../../agents/Dockerfile.sandbox).
+The end state for this module ships with [`examples/safe_agent.py`](../../examples/safe_agent.py) — sandboxing and guardrails (Module 8) together as one cumulative checkpoint. It runs `bash` inside a Docker container built from [`examples/Dockerfile.sandbox`](../../examples/Dockerfile.sandbox).
 
 ```bash
-cd agents
-uv run safe-agent/main.py
+cd examples
+uv run safe_agent.py
 ```
 
 Requires Docker to be running.

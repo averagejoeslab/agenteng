@@ -162,20 +162,22 @@ In each case, the next action depends on what the previous action produced. The 
 
 ## Content
 
-The curriculum is one straight line: start with a single LLM call and build outward, one capability at a time, until you reach a production-shaped coding agent.
+The curriculum is one straight line: start with a single LLM call and build outward, one capability at a time, until you reach a production-shaped coding agent. Each module pairs a prose explanation with a runnable checkpoint in [`examples/`](./examples/) — the file's name describes what the system has become at that step.
 
-1. [What is an agent?](./modules/01-what-is-an-agent/) — concept, three components, end-to-end sketch
-2. [An LLM call](./modules/02-an-llm-call/) — the Messages API; sync and async streaming
-3. [Add a loop](./modules/03-add-a-loop/) — multi-turn → first tool → TAO loop → async with parallel dispatch
-4. [Add tools](./modules/04-add-tools/) — tool design, the registry pattern, the toolkit, a central executor
-5. [Add memory](./modules/05-add-memory/) — persistence, token budget, semantic recall
-6. [Add sandboxing](./modules/06-add-sandboxing/) — Docker isolation for the `bash` tool *(stubbed)*
-7. [Add evaluation](./modules/07-add-evaluation/) — task suites, LLM-as-judge, regression testing *(stubbed)*
-8. [Add guardrails](./modules/08-add-guardrails/) — approval gates, loop bounds, retry/backoff *(stubbed)*
-9. [Add observability](./modules/09-add-observability/) — structured spans, JSONL traces, replay *(stubbed)*
-10. [Add performance](./modules/10-add-performance/) — prompt caching, tool caching, threading, streaming *(stubbed)*
+| # | Module | Checkpoint |
+|---|---|---|
+| 1 | [What is an agent?](./modules/01-what-is-an-agent/) — concept, three components, end-to-end sketch | *(no code)* |
+| 2 | [An LLM call](./modules/02-an-llm-call/) — the Messages API; sync and async streaming | [`llmcall.py`](./examples/llmcall.py) |
+| 3 | [Add a loop](./modules/03-add-a-loop/) — stateful conversation; the chatbot | [`chatbot.py`](./examples/chatbot.py) |
+| 4 | [Add tools](./modules/04-add-tools/) — one tool, the TAO loop, tool design, registry, toolkit, executor, async parallel dispatch | [`agent.py`](./examples/agent.py) |
+| 5 | [Add memory](./modules/05-add-memory/) — persistence, token budget, semantic recall | [`memory_agent.py`](./examples/memory_agent.py) |
+| 6 | [Add sandboxing](./modules/06-add-sandboxing/) — Docker isolation for the `bash` tool *(stubbed)* | [`safe_agent.py`](./examples/safe_agent.py) |
+| 7 | [Add evaluation](./modules/07-add-evaluation/) — task suites, LLM-as-judge, regression testing *(stubbed)* | [`evals/`](./evals/) |
+| 8 | [Add guardrails](./modules/08-add-guardrails/) — approval gates, loop bounds, retry/backoff *(stubbed)* | [`safe_agent.py`](./examples/safe_agent.py) |
+| 9 | [Add observability](./modules/09-add-observability/) — structured spans, JSONL traces, replay *(stubbed)* | [`traced_agent.py`](./examples/traced_agent.py) |
+| 10 | [Add performance](./modules/10-add-performance/) — prompt caching, tool caching, threading, streaming, structured prompts, `assemble()` *(stubbed)* | [`production_agent.py`](./examples/production_agent.py) |
 
-Modules 1-5 are complete. Modules 6-10 are stubbed; the corresponding reference agents in [`agents/`](./agents/) already implement what each one will describe — feel free to read those in the meantime.
+Modules 1-5 are written end-to-end. Modules 6-10 are stubbed; their checkpoints in [`examples/`](./examples/) already implement what each one will describe — feel free to run those in the meantime.
 
 ## License
 

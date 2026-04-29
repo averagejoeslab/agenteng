@@ -25,7 +25,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CASES_DIR = REPO_ROOT / "evals" / "cases"
 RESULTS_DIR = REPO_ROOT / "evals" / "results"
 
-DEFAULT_AGENT = "agents/coding-agent/main.py"
+DEFAULT_AGENT = "examples/agent.py"
 N_RUNS = 3   # per case; raise for stronger signal
 
 

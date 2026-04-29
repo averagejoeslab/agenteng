@@ -13,19 +13,16 @@ A correct agent is the floor; a fast and cheap one is the bar. Long-running agen
 - **Streaming the final answer.** From Module 2: streaming doesn't fit *during* the TAO loop (the agent needs full responses to dispatch tools), but it fits the *final* user-facing message — and that's where the latency win matters.
 - **Structured prompts and `assemble()`.** A single function that brings system prompt, recalled memories, tool schemas, and trimmed messages together — turning context-shaping into one named call site instead of inline construction in the loop.
 
-## References: optimized-agent and production-agent
+## Reference: production_agent.py
 
-Two reference agents cover this module's content:
-
-- [`agents/optimized-agent`](../../agents/optimized-agent/) — prompt caching, tool output caching, threading, and streaming the final response.
-- [`agents/production-agent`](../../agents/production-agent/) — adds the structured prompt and `assemble()` function. The curriculum's destination.
+The end state lives at [`examples/production_agent.py`](../../examples/production_agent.py) — prompt caching, tool output caching, threading, streaming, structured prompts, and the `assemble()` function, all stacked on top of the previous checkpoints. The curriculum's destination.
 
 ```bash
-cd agents
-uv run production-agent/main.py
+cd examples
+uv run production_agent.py
 ```
 
-Both require Docker (they include the Module 6 sandbox).
+Requires Docker (carries forward the Module 6 sandbox).
 
 ---
 

@@ -1,15 +1,164 @@
 # Add tools
 
-The agent from Module 3 has one tool. A coding agent needs more — read, write, edit, search, run commands. Adding the second tool surfaces a structural problem: the dispatch grows an `if/elif` per tool, the schema list duplicates the parameter descriptions, and there's no single place to handle errors.
+Module 3's chatbot can talk but not act. Tools change that — they let the model ask your code to run a function on its behalf, see the result, and decide what to do next. **The chatbot becomes an agent the moment it gets tools and a loop to use them in.**
 
-This module fixes that in four steps.
+This module covers the whole arc:
 
-1. **Tool design** — what makes a tool the model uses well.
-2. **A registry** — define each tool once; derive the schemas and dispatch from it.
-3. **The toolkit** — six tools every coding agent needs.
-4. **A central executor** — one place that runs tools and turns exceptions into strings.
+1. **One tool** — function + schema + dispatch. See the workflow shape.
+2. **Wrap in a loop** — the **TAO loop**. Workflow → agent.
+3. **Tool design** — what makes a tool the model uses well.
+4. **A registry** — define each tool once; derive schemas and dispatch.
+5. **The toolkit** — six tools every coding agent needs.
+6. **A central executor** — one place that handles errors for all tools.
+7. **Async + parallel dispatch** — run multiple tool calls concurrently.
 
-By the end you have [`agents/coding-agent`](../../agents/coding-agent/).
+By the end you have [`examples/agent.py`](../../examples/agent.py) — the curriculum's first real agent.
+
+## One tool
+
+A tool is a function the model can ask your code to run. The model declares its intent in a structured `tool_use` block; your code executes the function and feeds the result back.
+
+Three pieces:
+
+1. **The function** — the implementation, in your language.
+2. **The schema** — a JSON Schema description the model reads to know what arguments to pass. JSON Schema is the cross-language standard the LLM industry settled on, so the schema looks the same in Python, TypeScript, Go, or Rust — only the function changes.
+3. **The dispatch** — your code spotting the `tool_use` block, running the function, and feeding back a `tool_result`.
+
+```python
+def read(path: str) -> str:
+    try:
+        with open(path, "r") as f:
+            return f.read()
+    except Exception as e:
+        return f"error: {e}"
+
+
+tools = [
+    {
+        "name": "read",
+        "description": "Read the contents of a file",
+        "input_schema": {
+            "type": "object",
+            "properties": {"path": {"type": "string"}},
+            "required": ["path"],
+        },
+    }
+]
+```
+
+The function returns a string. **On error, it returns the error message *as a string* instead of raising.** The model can read the error and self-correct; a thrown exception would just kill the loop.
+
+Wire it into one turn:
+
+```python
+messages = [{"role": "user", "content": "What's in pyproject.toml?"}]
+
+response = client.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    system="You are a helpful coding assistant.",
+    messages=messages,
+    tools=tools,
+)
+messages.append({"role": "assistant", "content": response.content})
+
+# Look for a tool_use block
+for block in response.content:
+    if block.type == "tool_use":
+        result = read(**block.input)
+        messages.append({
+            "role": "user",
+            "content": [
+                {"type": "tool_result", "tool_use_id": block.id, "content": result}
+            ],
+        })
+
+# Now ask the model to interpret the result
+response = client.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    system="You are a helpful coding assistant.",
+    messages=messages,
+    tools=tools,
+)
+print(response.content[0].text)
+```
+
+Two new wire-format details:
+
+- **`response.content` is a list of blocks.** With tools enabled, a single response can contain `text` blocks, one or more `tool_use` blocks, or both.
+- **Tool results come back as a `user` message.** The `content` is a list of `tool_result` blocks; each is matched to its request by `tool_use_id`.
+
+This works — but notice the structure: **call the model, run the tool, call the model again.** Two calls, hardcoded. What if the model needs to read another file based on what it saw? What if it needs to read three files? The fixed two-call shape doesn't scale.
+
+This is a **workflow** — your code decides the sequence (call → tool → call). For a known task it's fine. For open-ended work, the model needs to decide when it's done.
+
+## Wrap it in a loop
+
+Replace the fixed two calls with a loop. Each iteration: call the model. If it asked for a tool, run it and loop again. If it didn't, the turn is over.
+
+```python
+while True:
+    user_input = input("❯ ")
+    if user_input.lower() in ("/q", "exit"):
+        break
+
+    messages.append({"role": "user", "content": user_input})
+
+    # The TAO loop
+    while True:
+        # THINK: call the model
+        response = client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=1024,
+            system="You are a helpful coding assistant.",
+            messages=messages,
+            tools=tools,
+        )
+        messages.append({"role": "assistant", "content": response.content})
+
+        for block in response.content:
+            if block.type == "text":
+                print(block.text)
+
+        tool_calls = [b for b in response.content if b.type == "tool_use"]
+        if not tool_calls:
+            break  # Model didn't ask for a tool — turn is over
+
+        # ACT: run each requested tool
+        results = []
+        for c in tool_calls:
+            results.append({
+                "type": "tool_result",
+                "tool_use_id": c.id,
+                "content": read(**c.input),
+            })
+
+        # OBSERVE: feed results back as the next user message
+        messages.append({"role": "user", "content": results})
+```
+
+Two loops, nested:
+
+- **Outer loop** — the conversation. One iteration per user turn (same as the chatbot).
+- **Inner loop** — the **TAO loop** (Think → Act → Observe). One iteration per model call plus its tool dispatches. The model decides when to stop by simply not requesting more tools.
+
+**This is the agent.** The control-flow choice — *do I need another tool, or am I done?* — moved from your code into the model. Your code no longer knows in advance how many tool calls a turn will take. The chatbot's outer loop is still there; what's new is that *the model now drives the inner loop*.
+
+```mermaid
+flowchart LR
+    Start[User input] --> Think[THINK<br/>LLM call]
+    Think --> Branch{Tool call?}
+    Branch -->|yes| Act[ACT<br/>Execute tool]
+    Act --> Observe[OBSERVE<br/>Result into context]
+    Observe --> Think
+    Branch -->|no| End[Response to user]
+```
+
+> [!NOTE]
+> This is the **ReAct loop** from the 2022 paper [*ReAct: Synergizing Reasoning and Acting in Language Models*](https://arxiv.org/abs/2210.03629) by Yao et al. The ReAct acronym drops observation; TAO keeps it visible.
+
+One tool is enough to make the loop work. Now we need more tools, and the dispatch above doesn't scale.
 
 ## Tool design
 
@@ -152,9 +301,9 @@ async def bash(cmd: str) -> str:
     return out.strip() or f"(exit {result.returncode})"
 ```
 
-A few things to notice:
+The functions are `async` because the next section runs them concurrently. A few details worth noticing:
 
-- **`grep` skips noise directories** (`.git`, `__pycache__`, `.venv`) by default and caps results at 100 lines. Without these limits a single `grep` can blow the context window.
+- **`grep` skips noise directories** (`.git`, `__pycache__`, `.venv`) and caps results at 100 lines. Without these limits a single `grep` can blow the context window.
 - **`bash` has a 30-second timeout** and merges stdout/stderr — the model can read either kind of output uniformly.
 - **`edit` and `write` return short confirmations.** `"ok"` and `"wrote 1234 chars to foo.py"` give the model just enough to know the action succeeded.
 
@@ -174,23 +323,37 @@ async def execute_tool(name: str, input: dict) -> str:
         return f"error: {e}"
 ```
 
-This is the safety net. Individual tools can use plain `with open(...)` — if the file doesn't exist, the executor catches the `FileNotFoundError` and returns it as a string. The agent loop never sees an exception; the model just sees a `tool_result` saying `"error: ..."` and adapts.
+This is the safety net. Individual tools can use plain `with open(...)` — if the file doesn't exist, the executor catches the exception and returns it as a string. The agent loop never sees an exception; the model just sees a `tool_result` saying `"error: ..."` and adapts.
 
-The TAO loop barely changes — the per-tool dispatch becomes a call to `execute_tool`:
+## Async and parallel tool dispatch
+
+The TAO loop above runs tools one at a time. If the model asks for three file reads, the second waits for the first, the third waits for the second — even though they could run in parallel.
+
+The fix is **concurrent dispatch**: kick off all the tool calls at once and wait for the whole batch. Every modern language has a primitive for this — Python's `asyncio.gather`, JavaScript's `Promise.all`, Go's goroutines, Rust's `join!`. The shape is the same: switch from a synchronous client to an async one, and replace the per-tool loop with a parallel-gather.
 
 ```python
 outputs = await asyncio.gather(
     *(execute_tool(c.name, c.input) for c in tool_calls)
 )
+
+messages.append({
+    "role": "user",
+    "content": [
+        {"type": "tool_result", "tool_use_id": c.id, "content": o}
+        for c, o in zip(tool_calls, outputs)
+    ],
+})
 ```
 
-## Reference: coding-agent
+For a single tool call this is no different from running serially; for many, the turn finishes in roughly the time of the slowest tool instead of the sum of all of them.
 
-The end state is [`agents/coding-agent`](../../agents/coding-agent/). It's the same script — six tools through a registry, one executor, one async TAO loop:
+## Run it
+
+The end state lives at [`examples/agent.py`](../../examples/agent.py) — six tools through a registry, one executor, one async TAO loop:
 
 ```bash
-cd agents
-uv run coding-agent/main.py
+cd examples
+uv run agent.py
 ```
 
 Try it on a real task:
@@ -199,13 +362,13 @@ Try it on a real task:
 ❯ find all the TODOs in this codebase and write a summary to TODOS.md
 ```
 
-The model will pick its own path: probably `grep` first, maybe `read` on a few hot files, then `write`. Each tool call is one entry in the registry; the loop doesn't know or care how many there are.
+The model picks its own path: probably `glob` or `grep` first, maybe `read` on a few hot files, then `write`. Each tool call is one entry in the registry; the loop doesn't know or care how many there are. **This is what makes it an agent — the model, not your code, decides what comes next.**
 
 ## What's missing
 
 - **Nothing persists.** Quit the program and the entire conversation is gone — including everything the agent learned about your codebase.
 - **The context window will fill.** A long session will eventually overflow the model's input limit. Right now there's no answer to that.
-- **`bash` runs on your machine.** Anything the model can type, your shell will execute. That's the next major problem.
+- **`bash` runs on your machine.** Anything the model can type, your shell will execute.
 
 ---
 
