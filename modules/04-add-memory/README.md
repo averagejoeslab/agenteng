@@ -100,15 +100,19 @@ past_turn_budget = CONTEXT_BUDGET
 
 ### Counting tokens (locally)
 
-You don't need an API round-trip per turn to count tokens. A char-based approximation is good enough for a budget — Claude is around 4 characters per token for English, and the budget already has slack:
+You don't need an API round-trip per turn to count tokens. We use `tiktoken` — OpenAI's BPE tokenizer library — with the `cl100k_base` encoding. It's not Claude's tokenizer, but it produces counts that are within ~5% of Claude's for English text, and it runs locally with no API call:
 
 ```python
+import tiktoken
+
+_tokenizer = tiktoken.get_encoding("cl100k_base")
+
+
 def approx_tokens(value) -> int:
-    """~4 chars/token for English. Local and free; trades a few percent
-    of accuracy for zero API cost."""
-    if isinstance(value, str):
-        return len(value) // 4
-    return len(json.dumps(value, default=_serialize)) // 4
+    """Local BPE token count. Not exact for Claude (~5% off for English),
+    but the budget runs below the hard limit so a small overcount is safe."""
+    text = value if isinstance(value, str) else json.dumps(value, default=_serialize)
+    return len(_tokenizer.encode(text))
 
 
 def message_tokens(msg) -> int:
@@ -116,7 +120,7 @@ def message_tokens(msg) -> int:
 ```
 
 > [!NOTE]
-> The Anthropic API also exposes a `count_tokens` endpoint that's exact for Claude. It costs an API round-trip per call, which adds latency and cost. For a budget that already runs at ~75% of the hard limit, the local approximation wins on simplicity. Use `count_tokens` when you need exactness — for example, to bill users on token cost.
+> The Anthropic API also exposes a `count_tokens` endpoint that's exact for Claude. It costs an API round-trip per call, which adds latency and cost. For a budget that already runs at ~75% of the hard limit, the local tokenizer wins — same shape, no network. Use `count_tokens` when you need exactness, e.g. to bill users on token cost or to get within a percentage point of the hard limit.
 
 ### Walking turns newest-first
 

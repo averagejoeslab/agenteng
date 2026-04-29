@@ -9,4 +9,5 @@ dependencies = [
     "sentence-transformers>=3.0.0",
     "numpy>=2.0.0",
     "pyyaml>=6.0",
+    "tiktoken>=0.8.0",
 ]

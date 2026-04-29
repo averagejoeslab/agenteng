@@ -13,6 +13,7 @@ from pathlib import Path
 from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
+import tiktoken
 import numpy as np
 
 load_dotenv()
@@ -319,11 +320,13 @@ def save_messages(messages: list) -> None:
 
 # --- Token budget (upfront computation) ---
 
+_tokenizer = tiktoken.get_encoding("cl100k_base")
+
+
 def approx_tokens(value) -> int:
-    """Rough char-based estimate (~4 chars/token for English)."""
-    if isinstance(value, str):
-        return len(value) // 4
-    return len(json.dumps(value, default=_serialize)) // 4
+    """Local BPE token count via tiktoken (~5% of Claude's actual count)."""
+    text = value if isinstance(value, str) else json.dumps(value, default=_serialize)
+    return len(_tokenizer.encode(text))
 
 
 def message_tokens(msg) -> int:
