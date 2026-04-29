@@ -1,6 +1,6 @@
 # evals
 
-The Module 7 artifact. An evaluation harness that runs YAML test cases against any script in `examples/`, scores outputs (with code checks and LLM-as-judge), aggregates pass rates over multiple runs, and tracks regressions across timestamped result files.
+The Module 9 artifact. An evaluation harness that runs YAML test cases against any script in `examples/`, scores outputs (with code checks and LLM-as-judge), aggregates pass rates over multiple runs, and tracks regressions across timestamped result files.
 
 ## Run the suite
 

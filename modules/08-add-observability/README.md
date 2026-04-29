@@ -31,4 +31,4 @@ tail -n 20 ~/.traced-agent/traces.jsonl | jq
 
 ---
 
-**Next:** [Module 10: Add performance](../10-add-performance/)
+**Next:** [Module 9: Add evaluation](../09-add-evaluation/)

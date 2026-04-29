@@ -26,4 +26,4 @@ Requires Docker to be running.
 
 ---
 
-**Next:** [Module 7: Add evaluation](../07-add-evaluation/)
+**Next:** [Module 7: Add guardrails](../07-add-guardrails/)

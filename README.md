@@ -172,9 +172,9 @@ The curriculum is one straight line: start with a single LLM call and build outw
 | 4 | [Add memory](./modules/04-add-memory/) — persistence, token budget, semantic recall; the stateful chatbot | [`stateful_chatbot.py`](./examples/stateful_chatbot.py) |
 | 5 | [Add tools](./modules/05-add-tools/) — one tool, the TAO loop, tool design, registry, toolkit, executor, async parallel dispatch; the stateful agent | [`agent.py`](./examples/agent.py) |
 | 6 | [Add sandboxing](./modules/06-add-sandboxing/) — Docker isolation for the `bash` tool *(stubbed)* | [`sandbox_agent.py`](./examples/sandbox_agent.py) |
-| 7 | [Add evaluation](./modules/07-add-evaluation/) — task suites, LLM-as-judge, regression testing *(stubbed)* | [`evals/`](./evals/) |
-| 8 | [Add guardrails](./modules/08-add-guardrails/) — approval gates, loop bounds, retry/backoff *(stubbed)* | [`safe_agent.py`](./examples/safe_agent.py) |
-| 9 | [Add observability](./modules/09-add-observability/) — structured spans, JSONL traces, replay *(stubbed)* | [`traced_agent.py`](./examples/traced_agent.py) |
+| 7 | [Add guardrails](./modules/07-add-guardrails/) — approval gates, loop bounds, retry/backoff *(stubbed)* | [`safe_agent.py`](./examples/safe_agent.py) |
+| 8 | [Add observability](./modules/08-add-observability/) — structured spans, JSONL traces, replay *(stubbed)* | [`traced_agent.py`](./examples/traced_agent.py) |
+| 9 | [Add evaluation](./modules/09-add-evaluation/) — task suites, LLM-as-judge, regression testing *(stubbed)* | [`evals/`](./evals/) |
 | 10 | [Add performance](./modules/10-add-performance/) — prompt caching, tool caching, threading, streaming, structured prompts, `assemble()` *(stubbed)* | [`production_agent.py`](./examples/production_agent.py) |
 
 Modules 1-5 are written end-to-end. Modules 6-10 are stubbed; their checkpoints in [`examples/`](./examples/) already implement what each one will describe — feel free to run those in the meantime.

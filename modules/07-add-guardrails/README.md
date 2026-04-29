@@ -13,7 +13,7 @@ Sandboxing (Module 6) constrains *where* the agent can do damage. Guardrails con
 
 ## Reference: safe_agent.py
 
-The end state still lives at [`examples/safe_agent.py`](../../examples/safe_agent.py) — the same checkpoint introduced in Module 6. Sandboxing and guardrails ship together as one cumulative artifact:
+The end state lives at [`examples/safe_agent.py`](../../examples/safe_agent.py) — the sandboxed agent from Module 6 with approval gates, loop bounds, and retry/backoff added on top:
 
 ```bash
 cd examples
@@ -24,4 +24,4 @@ Try a `write` or `bash` call — the agent will pause and ask before executing.
 
 ---
 
-**Next:** [Module 9: Add observability](../09-add-observability/)
+**Next:** [Module 8: Add observability](../08-add-observability/)

@@ -32,11 +32,11 @@ Each script is a strict superset of the previous one's capabilities.
 | 3 | [`stateful_chatbot.py`](./stateful_chatbot.py) | [4](../modules/04-add-memory/) | Persistence + token budget eviction + semantic recall |
 | 4 | [`agent.py`](./agent.py) | [5](../modules/05-add-tools/) | Tools + TAO loop + async parallel dispatch — stateful agent |
 | 5 | [`sandbox_agent.py`](./sandbox_agent.py) | [6](../modules/06-add-sandboxing/) | Docker-isolated `bash` |
-| 6 | [`safe_agent.py`](./safe_agent.py) | [8](../modules/08-add-guardrails/) | Approval gates + loop bounds + retry/backoff |
-| 7 | [`traced_agent.py`](./traced_agent.py) | [9](../modules/09-add-observability/) | Structured tracing emitted as JSONL spans |
+| 6 | [`safe_agent.py`](./safe_agent.py) | [7](../modules/07-add-guardrails/) | Approval gates + loop bounds + retry/backoff |
+| 7 | [`traced_agent.py`](./traced_agent.py) | [8](../modules/08-add-observability/) | Structured tracing emitted as JSONL spans |
 | 8 | [`production_agent.py`](./production_agent.py) | [10](../modules/10-add-performance/) | Prompt caching + tool caching + threading + streaming + structured prompts + `assemble()` — the curriculum's destination |
 
-(Module 7 — Evaluation — ships at [`evals/`](../evals/) at the repo root, since it tests the scripts here rather than being one.)
+(Module 9 — Evaluation — ships at [`evals/`](../evals/) at the repo root, since it tests the scripts here rather than being one.)
 
 ## Picking which one to run
 
