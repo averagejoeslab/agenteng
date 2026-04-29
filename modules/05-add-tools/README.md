@@ -391,9 +391,13 @@ Try it on a real task:
 
 The model picks its own path: probably `glob` or `grep` first, maybe `read` on a few hot files, then `write`. Each tool call is one entry in the registry; the loop doesn't know or care how many there are. **This is what makes it an agent — the model, not your code, decides what comes next.** And because Module 4's persistence and recall machinery is still wired up, the agent remembers what it did across sessions — it's stateful from day one.
 
-## One budget tweak
+## Two budget tweaks
 
-The persistence/budget/recall trio carries forward unchanged from Module 4 — except for one thing. Tool-using messages can carry `tool_result` blocks back as `user` messages, and splitting a `tool_use` / `tool_result` pair across an eviction boundary makes the API reject the request with a 400.
+The persistence/budget/recall trio carries forward unchanged from Module 4 — with two adjustments tools force on us.
+
+### 1. Don't split tool_use / tool_result pairs
+
+Tool-using messages can carry `tool_result` blocks back as `user` messages, and splitting a `tool_use` / `tool_result` pair across an eviction boundary makes the API reject the request with a 400.
 
 `find_turn_boundaries` extends to skip those:
 
@@ -434,6 +438,43 @@ def assemble(user_input, system, history):
 ```
 
 `TOOL_SCHEMA_TOKENS` is a module-level constant — the schemas don't change at runtime, so we count them once at import and reuse.
+
+### 2. Re-check the budget inside the TAO loop
+
+`assemble()` fits the budget at the *start* of a user turn. But during a long agentic turn, messages keep growing — every iteration adds an assistant message with `tool_use` blocks plus a user message with `tool_result` blocks. After several iterations the buffer can drift past budget even though it fit at turn start.
+
+Within-turn eviction fixes this. Before each iteration's LLM call, re-sum the messages; if over budget, drop the oldest past-history turn. Never touch the in-progress turn (`messages[turn_start:]`) — splitting it would break a tool_use/tool_result pair.
+
+```python
+def enforce_budget(messages, turn_start, system) -> tuple[list, int]:
+    fixed = MAX_RESPONSE_TOKENS + TOOL_SCHEMA_TOKENS + approx_tokens(system)
+    budget = CONTEXT_BUDGET - fixed
+
+    while sum(message_tokens(m) for m in messages) > budget:
+        if turn_start == 0:
+            break  # nothing left in past history to drop
+        past_boundaries = find_turn_boundaries(messages[:turn_start])
+        if len(past_boundaries) < 2:
+            messages = messages[turn_start:]   # drop the whole past
+            turn_start = 0
+            break
+        drop_to = past_boundaries[1]            # drop oldest past turn
+        messages = messages[drop_to:]
+        turn_start -= drop_to
+
+    return messages, turn_start
+```
+
+Wire it into the TAO loop, called every iteration:
+
+```python
+while True:
+    messages, turn_start = enforce_budget(messages, turn_start, system)
+    async with client.messages.stream(...) as stream:
+        ...
+```
+
+For a chatbot (Module 4), there's no within-turn growth — one user message produces one assistant response and the turn ends. So `assemble()` at user-turn start was sufficient. Agents need the additional check because the inner loop can run many model calls per user turn.
 
 ## What's missing
 

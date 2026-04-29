@@ -287,6 +287,38 @@ def assemble(user_input: str, system: str, history: list) -> list:
     return history[keep_from:] + [{"role": "user", "content": user_input}]
 
 
+def enforce_budget(messages: list, turn_start: int, system) -> tuple[list, int]:
+    """Within-turn eviction: drop oldest past-history turns until total fits.
+
+    Called inside the TAO loop. As tool_use/tool_result pairs accumulate
+    during a long agentic turn, messages can exceed the budget that was
+    fitted at user-turn start. This re-checks and evicts whole past turns
+    (only from messages[:turn_start]) until the total is back under budget.
+
+    The in-progress turn (messages[turn_start:]) is never touched —
+    splitting a tool_use/tool_result pair would make the API reject the
+    request.
+    """
+    fixed = MAX_RESPONSE_TOKENS + TOOL_SCHEMA_TOKENS + approx_tokens(system)
+    budget = CONTEXT_BUDGET - fixed
+
+    while sum(message_tokens(m) for m in messages) > budget:
+        if turn_start == 0:
+            break  # no past history left to evict
+        past_boundaries = find_turn_boundaries(messages[:turn_start])
+        if len(past_boundaries) < 2:
+            # Only one turn (or none) of past history — drop whole past
+            messages = messages[turn_start:]
+            turn_start = 0
+            break
+        # Drop the oldest past turn (everything up to the second boundary)
+        drop_to = past_boundaries[1]
+        messages = messages[drop_to:]
+        turn_start -= drop_to
+
+    return messages, turn_start
+
+
 # --- Semantic recall ---
 
 print("Loading embedding model...")
@@ -367,6 +399,7 @@ async def main():
 
         # TAO loop
         while True:
+            messages, turn_start = enforce_budget(messages, turn_start, system)
             async with client.messages.stream(
                 model=MODEL,
                 max_tokens=MAX_RESPONSE_TOKENS,

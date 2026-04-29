@@ -323,6 +323,26 @@ def assemble(user_input: str, system: str, history: list) -> list:
     return history[keep_from:] + [{"role": "user", "content": user_input}]
 
 
+def enforce_budget(messages: list, turn_start: int, system) -> tuple[list, int]:
+    """Within-turn eviction: drop oldest past-history turns until total fits."""
+    fixed = MAX_RESPONSE_TOKENS + TOOL_SCHEMA_TOKENS + approx_tokens(system)
+    budget = CONTEXT_BUDGET - fixed
+
+    while sum(message_tokens(m) for m in messages) > budget:
+        if turn_start == 0:
+            break
+        past_boundaries = find_turn_boundaries(messages[:turn_start])
+        if len(past_boundaries) < 2:
+            messages = messages[turn_start:]
+            turn_start = 0
+            break
+        drop_to = past_boundaries[1]
+        messages = messages[drop_to:]
+        turn_start -= drop_to
+
+    return messages, turn_start
+
+
 # --- Semantic recall ---
 
 print("Loading embedding model...")
@@ -405,6 +425,7 @@ async def main():
         turn_start = len(messages) - 1
 
         while True:
+            messages, turn_start = enforce_budget(messages, turn_start, system)
             async with client.messages.stream(
                 model=MODEL,
                 max_tokens=MAX_RESPONSE_TOKENS,
