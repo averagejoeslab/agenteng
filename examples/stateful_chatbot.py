@@ -1,14 +1,15 @@
 import os
 import json
+import asyncio
 from pathlib import Path
-from anthropic import Anthropic
+from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
 load_dotenv()
 
-client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 MODEL = "claude-sonnet-4-5"
 SUMMARY_MODEL = "claude-haiku-4-5"
@@ -155,8 +156,8 @@ def recall(query: str, entries: list[dict],
     return [text for score, text in scored[:k] if score >= threshold]
 
 
-def summarize_turn(turn_messages: list) -> str:
-    response = client.messages.create(
+async def summarize_turn(turn_messages: list) -> str:
+    response = await client.messages.create(
         model=SUMMARY_MODEL,
         max_tokens=200,
         system=("You write one-paragraph summaries of conversations. "
@@ -173,7 +174,7 @@ def summarize_turn(turn_messages: list) -> str:
 BASE_SYSTEM = "You are a helpful assistant."
 
 
-def main():
+async def main():
     history = load_messages()
     recall_entries = load_recall()
 
@@ -192,16 +193,16 @@ def main():
         messages = assemble(user_input, system, history)
         turn_start = len(messages) - 1
 
-        with client.messages.stream(
+        async with client.messages.stream(
             model=MODEL,
             max_tokens=MAX_RESPONSE_TOKENS,
             system=system,
             messages=messages,
         ) as stream:
-            for text in stream.text_stream:
+            async for text in stream.text_stream:
                 print(text, end="", flush=True)
             print()
-            response = stream.get_final_message()
+            response = await stream.get_final_message()
 
         messages.append({"role": "assistant", "content": response.content[0].text})
 
@@ -210,8 +211,8 @@ def main():
         save_messages(history)
 
         turn_messages = messages[turn_start:]
-        summary = summarize_turn(turn_messages)
+        summary = await summarize_turn(turn_messages)
         add_to_recall(summary, recall_entries)
 
 
-main()
+asyncio.run(main())

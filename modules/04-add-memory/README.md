@@ -156,16 +156,16 @@ def assemble(user_input: str, system: str, history: list) -> list:
 
 `assemble` takes the user's new input, the system prompt, and the persisted history; returns the messages list to send to the model. One pass, no iterative trimming.
 
-Wire it into the loop:
+Wire it into the loop (still async — we'll keep the same pattern across the curriculum):
 
 ```python
 messages = assemble(user_input, system, history)
 
-with client.messages.stream(model=MODEL, system=system, messages=messages, ...) as stream:
-    for text in stream.text_stream:
+async with client.messages.stream(model=MODEL, system=system, messages=messages, ...) as stream:
+    async for text in stream.text_stream:
         print(text, end="", flush=True)
     print()
-    response = stream.get_final_message()
+    response = await stream.get_final_message()
 
 messages.append({"role": "assistant", "content": response.content[0].text})
 history = messages  # the assembled buffer becomes the next iteration's input

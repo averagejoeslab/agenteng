@@ -1,29 +1,35 @@
 import os
-from anthropic import Anthropic
+import asyncio
+from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-messages = []
 
-while True:
-    user_input = input("❯ ")
-    if user_input.lower() in ("/q", "exit"):
-        break
+async def main():
+    messages = []
 
-    messages.append({"role": "user", "content": user_input})
+    while True:
+        user_input = input("❯ ")
+        if user_input.lower() in ("/q", "exit"):
+            break
 
-    with client.messages.stream(
-        model="claude-sonnet-4-5",
-        max_tokens=1024,
-        system="You are a helpful assistant.",
-        messages=messages,
-    ) as stream:
-        for text in stream.text_stream:
-            print(text, end="", flush=True)
-        print()
-        response = stream.get_final_message()
+        messages.append({"role": "user", "content": user_input})
 
-    messages.append({"role": "assistant", "content": response.content[0].text})
+        async with client.messages.stream(
+            model="claude-sonnet-4-5",
+            max_tokens=1024,
+            system="You are a helpful assistant.",
+            messages=messages,
+        ) as stream:
+            async for text in stream.text_stream:
+                print(text, end="", flush=True)
+            print()
+            response = await stream.get_final_message()
+
+        messages.append({"role": "assistant", "content": response.content[0].text})
+
+
+asyncio.run(main())

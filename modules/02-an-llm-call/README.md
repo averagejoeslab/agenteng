@@ -126,7 +126,11 @@ The response materializes a few words at a time rather than appearing all at onc
 | Interactive UIs displaying responses | full-response wait per call | tokens land live |
 | Agents that dispatch tools after the model is done | ✓ | ✓ — stream the text for UX, then `await stream.get_final_message()` for the structured response |
 
-The original "streaming doesn't fit for agents" is a half-truth. You can't dispatch tools *mid-stream*, but nothing stops you from streaming the model's text output for UX while the SDK collects the full structured response in the background. When the stream finishes, `get_final_message()` returns the same `Message` shape you'd get from `messages.create` — including `tool_use` blocks. **Every example downstream of this module streams.** The chatbots stream their text and that's the end of the turn; the agents stream the model's narration, then wait for the final message and dispatch tool calls from it.
+The original "streaming doesn't fit for agents" is a half-truth. You can't dispatch tools *mid-stream*, but nothing stops you from streaming the model's text output for UX while the SDK collects the full structured response in the background. When the stream finishes, `get_final_message()` returns the same `Message` shape you'd get from `messages.create` — including `tool_use` blocks.
+
+**Every example downstream of this module uses async streaming via `AsyncAnthropic`.** The chatbots in Modules 3-4 stream their text and that's the end of the turn; the agents in Modules 5+ stream the model's narration, then `await stream.get_final_message()` and dispatch tool calls from it. We commit to async early so the same shape holds from the chatbot through the production agent — no halfway sync detour to revisit later.
+
+The committed [`examples/llm_call.py`](../../examples/llm_call.py) keeps the simple sync version because the file's job is to introduce the API, not the streaming pattern. From `examples/stateless_chatbot.py` onward, every script is async-streaming.
 
 ## What's missing
 

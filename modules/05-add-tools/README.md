@@ -109,17 +109,17 @@ while True:
     while True:
         # THINK: call the model — stream the text for UX, then capture the
         # final structured response (with any tool_use blocks).
-        with client.messages.stream(
+        async with client.messages.stream(
             model="claude-sonnet-4-5",
             max_tokens=1024,
             system="You are a helpful coding assistant.",
             messages=messages,
             tools=tools,
         ) as stream:
-            for text in stream.text_stream:
+            async for text in stream.text_stream:
                 print(text, end="", flush=True)
             print()
-            response = stream.get_final_message()
+            response = await stream.get_final_message()
 
         messages.append({"role": "assistant", "content": response.content})
 
@@ -352,11 +352,11 @@ async def execute_tool(name: str, input: dict) -> str:
 
 This is the safety net. Individual tools can use plain `with open(...)` — if the file doesn't exist, the executor catches the exception and returns it as a string. The agent loop never sees an exception; the model just sees a `tool_result` saying `"error: ..."` and adapts.
 
-## Async and parallel tool dispatch
+## Parallel tool dispatch
 
 The TAO loop above runs tools one at a time. If the model asks for three file reads, the second waits for the first, the third waits for the second — even though they could run in parallel.
 
-The fix is **concurrent dispatch**: kick off all the tool calls at once and wait for the whole batch. Every modern language has a primitive for this — Python's `asyncio.gather`, JavaScript's `Promise.all`, Go's goroutines, Rust's `join!`. The shape is the same: switch from a synchronous client to an async one, and replace the per-tool loop with a parallel-gather.
+The fix is **concurrent dispatch**: kick off all the tool calls at once and wait for the whole batch. We're already async (since Module 3's chatbot adopted `AsyncAnthropic` for streaming), so this is just a one-line change — the per-tool loop becomes a `gather`. Every modern language has the same primitive — Python's `asyncio.gather`, JavaScript's `Promise.all`, Go's goroutines, Rust's `join!`.
 
 ```python
 outputs = await asyncio.gather(

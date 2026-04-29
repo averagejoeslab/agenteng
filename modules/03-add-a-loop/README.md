@@ -14,43 +14,49 @@ This is the trick that makes a multi-turn conversation possible without any serv
 
 ## The chatbot
 
-A `while True` around the API call, with a list that grows on each turn. Module 2 introduced streaming for UX — we use it here so each reply renders token-by-token instead of as one delayed block:
+A `while True` around the API call, with a list that grows on each turn. Module 2 introduced **async streaming** — we use it here so each reply renders token-by-token instead of as one delayed block. The curriculum uses async streaming for every LLM call from this point forward, so settling into the `async`/`await` pattern early pays off in later modules:
 
 ```python
 import os
-from anthropic import Anthropic
+import asyncio
+from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 
 load_dotenv()
-client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-messages = []
 
-while True:
-    user_input = input("❯ ")
-    if user_input.lower() in ("/q", "exit"):
-        break
+async def main():
+    messages = []
 
-    messages.append({"role": "user", "content": user_input})
+    while True:
+        user_input = input("❯ ")
+        if user_input.lower() in ("/q", "exit"):
+            break
 
-    with client.messages.stream(
-        model="claude-sonnet-4-5",
-        max_tokens=1024,
-        system="You are a helpful assistant.",
-        messages=messages,
-    ) as stream:
-        for text in stream.text_stream:
-            print(text, end="", flush=True)
-        print()
-        response = stream.get_final_message()
+        messages.append({"role": "user", "content": user_input})
 
-    messages.append({"role": "assistant", "content": response.content[0].text})
+        async with client.messages.stream(
+            model="claude-sonnet-4-5",
+            max_tokens=1024,
+            system="You are a helpful assistant.",
+            messages=messages,
+        ) as stream:
+            async for text in stream.text_stream:
+                print(text, end="", flush=True)
+            print()
+            response = await stream.get_final_message()
+
+        messages.append({"role": "assistant", "content": response.content[0].text})
+
+
+asyncio.run(main())
 ```
 
 Three things to notice:
 
 1. **Every turn sends the full history.** No server-side state — `messages` is the entire conversation each call.
-2. **The stream prints text live; `get_final_message()` returns the structured response** at the end. We append the assistant's text to history from the captured response, not by buffering everything ourselves while streaming.
+2. **The stream prints text live; `await stream.get_final_message()` returns the structured response** at the end. We append the assistant's text to history from the captured response, not by buffering everything ourselves while streaming.
 3. **Both roles get appended.** User input goes in before the call; the assistant's reply goes in after. The next turn sees both.
 
 ## Run it
