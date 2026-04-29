@@ -364,6 +364,8 @@ Try it on a real task:
 
 The model picks its own path: probably `glob` or `grep` first, maybe `read` on a few hot files, then `write`. Each tool call is one entry in the registry; the loop doesn't know or care how many there are. **This is what makes it an agent — the model, not your code, decides what comes next.**
 
+At this point the agent is **in-memory only**. Within a session, `messages` grows and the agent reasons over the full history; on exit, everything it learned about your codebase evaporates. Making the agent **stateful** — recognized when you come back next week — is the next module.
+
 ## What's missing
 
 - **Nothing persists.** Quit the program and the entire conversation is gone — including everything the agent learned about your codebase.

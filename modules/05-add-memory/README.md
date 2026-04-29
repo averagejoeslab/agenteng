@@ -1,6 +1,8 @@
 # Add memory
 
-When you quit the coding agent, everything it knew vanishes. Next session, it's a stranger again — re-reading the same files, re-deriving the same context. *Memory* is the fix, but "memory" is overloaded. There are three distinct problems hiding under one word, and they need different solutions:
+Module 4's agent is **in-memory only**. Quit the program and everything it knew vanishes; next session it's a stranger again, re-reading the same files, re-deriving the same context. Adding **memory** turns it into a **stateful agent** — one that recognizes you when you come back next week, instead of starting from zero every run.
+
+But "memory" is overloaded. There are three distinct problems hiding under one word, and they need different solutions:
 
 1. **Persistence** — the conversation must survive a restart. Save the messages list to disk, load it next session.
 2. **Token budget** — the context window has a fixed size; eventually a long conversation overflows it. Trim old turns when needed.
