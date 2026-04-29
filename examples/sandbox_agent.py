@@ -67,8 +67,8 @@ def start_sandbox(workspace: str) -> None:
 def stop_sandbox():
     if _sandbox_name:
         subprocess.run(
-            ["docker", "stop", _sandbox_name],
-            check=False, capture_output=True, timeout=5,
+            ["docker", "stop", "-t", "1", _sandbox_name],
+            check=False, capture_output=True, timeout=10,
         )
 
 
