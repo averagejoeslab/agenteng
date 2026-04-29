@@ -12,6 +12,22 @@ So the *program* keeps the state. You maintain a list of `{role, content}` turns
 
 This is the trick that makes a multi-turn conversation possible without any server-side session — the conversation lives in your variable.
 
+## Tie the loop to an environment
+
+A loop on its own is a program running forever in a vacuum. To make it useful you have to **tie it to an environment** — somewhere it reads input from and writes output to. Just as a person is bootstrapped into a body and a world, a loop has to be bootstrapped into an environment. The environment is the agent's world.
+
+We're picking the simplest one available: the **terminal**. `input()` reads a line from stdin, `print()` writes back to stdout, `/q` exits. Zero ceremony, the same bytes you already know.
+
+But the loop itself is environment-agnostic. The same `while True` around the same `messages.create` could just as well bind to:
+
+- A **web socket** — input from a browser, output as streaming SSE.
+- A **Slack channel** — input from a slash command, output as a thread reply.
+- A **Gameboy emulator** — input from button presses, output as screen state. Give such an agent a "press button" tool later, and it eventually lives and plays inside the console.
+- A **Minecraft server** — input from chat or game events, output as block actions.
+- A **spreadsheet cell** — input from the formula's arguments, output as the cell's value.
+
+When you decide to wrap an LLM call in a loop, you're also deciding *where* that loop lives. The terminal is just our pick — chosen because it has the least ceremony for a curriculum. The pattern transfers to any environment that can hand you input bytes and accept output bytes; once the loop is wired, the rest of the curriculum is the same.
+
 ## The chatbot
 
 A `while True` around the API call, with a list that grows on each turn. Module 2 introduced **async streaming** — we use it here so each reply renders token-by-token instead of as one delayed block. The curriculum uses async streaming for every LLM call from this point forward, so settling into the `async`/`await` pattern early pays off in later modules:
