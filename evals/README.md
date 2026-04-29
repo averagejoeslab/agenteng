@@ -4,14 +4,14 @@ The Module 9 artifact. An evaluation harness that runs YAML test cases against a
 
 ## Run the suite
 
-From the repo root:
+From the repo root (the `--project examples` flag points uv at the shared dependency set):
 
 ```bash
 # Default: runs against examples/agent.py
-uv run evals/run.py
+uv run --project examples evals/run.py
 
 # Or specify another script:
-uv run evals/run.py examples/production_agent.py
+uv run --project examples evals/run.py examples/production_agent.py
 ```
 
 Each case runs N times (default 3) for stochastic averaging. Results land in `evals/results/<timestamp>.json`.
@@ -19,7 +19,7 @@ Each case runs N times (default 3) for stochastic averaging. Results land in `ev
 ## Detect regressions
 
 ```bash
-uv run evals/diff.py evals/results/prev.json evals/results/curr.json
+uv run --project examples evals/diff.py evals/results/prev.json evals/results/curr.json
 ```
 
 Reports cases where pass rate dropped >10% (regression) or improved >10% (improvement). Exits non-zero on regression — useful in CI.

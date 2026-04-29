@@ -109,10 +109,11 @@ asyncio.run(main())
 
 The shape is the same as the sync call — same `model`, same `messages`, same response — except the SDK opens a streaming connection and the program loops over chunks instead of waiting for one return value. Each chunk is printed as it arrives.
 
-Run it:
+To try it, save the snippet as a separate file (the committed `examples/llm_call.py` keeps the sync version, since the rest of the curriculum doesn't need streaming):
 
 ```bash
-uv run llm_call.py
+# save the snippet above as llm_call_stream.py, then:
+uv run llm_call_stream.py
 ```
 
 The response materializes a few words at a time rather than appearing all at once.

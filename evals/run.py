@@ -15,13 +15,13 @@ from datetime import datetime, timezone
 from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 
-load_dotenv()
+REPO_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(REPO_ROOT / "examples" / ".env")
 
 client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 JUDGE_MODEL = "claude-haiku-4-5"
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
 CASES_DIR = REPO_ROOT / "evals" / "cases"
 RESULTS_DIR = REPO_ROOT / "evals" / "results"
 
@@ -32,12 +32,13 @@ N_RUNS = 3   # per case; raise for stronger signal
 async def run_case(case: dict, agent_path: str) -> dict:
     """Run the agent once with the case's input. Return stdout/stderr."""
     user_input = case["input"] + "\n/q\n"
+    agent_abs = (REPO_ROOT / agent_path).resolve() if not Path(agent_path).is_absolute() else Path(agent_path).resolve()
     proc = await asyncio.create_subprocess_exec(
-        "uv", "run", agent_path,
+        "uv", "run", str(agent_abs),
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-        cwd=REPO_ROOT / "agents",
+        cwd=REPO_ROOT / "examples",
     )
     stdout, stderr = await proc.communicate(user_input.encode())
     return {

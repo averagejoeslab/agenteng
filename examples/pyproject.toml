@@ -1,7 +1,7 @@
 [project]
-name = "agents"
+name = "examples"
 version = "0.1.0"
-description = "Reference agents built across the agenteng content. Shares one venv, one .env, and one dependency set."
+description = "Runnable checkpoints for the agenteng curriculum. Shares one venv, one .env, and one dependency set across all scripts."
 requires-python = ">=3.13"
 dependencies = [
     "anthropic>=0.97.0",

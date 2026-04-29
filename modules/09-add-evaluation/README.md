@@ -18,8 +18,9 @@ Up to this point, "does the agent work?" has been a vibe check. To change a prom
 The end state already lives at [`evals/`](../../evals/) at the repo root — it tests *any* of the scripts in `examples/`. It's structured as a runner (`run.py`), a per-case YAML format under `evals/cases/`, and a diff tool (`diff.py`) for comparing two runs.
 
 ```bash
-cd evals
-uv run run.py --agent ../examples/agent.py
+uv run --project examples evals/run.py
+# or against a specific agent script:
+uv run --project examples evals/run.py examples/production_agent.py
 ```
 
 ---
